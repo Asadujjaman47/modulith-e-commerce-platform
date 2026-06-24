@@ -1,0 +1,738 @@
+# API_GUIDE.md
+
+# E-Commerce Platform API Guide
+
+Version: 1.0
+
+Base URL:
+
+/api/v1
+
+Protocol:
+
+HTTPS
+
+Response Format:
+
+JSON
+
+Authentication:
+
+JWT Bearer Token
+
+---
+
+# 1. API Design Principles
+
+Rules:
+
+* Use REST conventions.
+* Use plural resource names.
+* Use nouns, not verbs.
+* Use HTTP methods correctly.
+* Never expose JPA entities.
+* Use DTOs only.
+* Version APIs.
+* Return consistent response structures.
+* Support pagination on collection endpoints.
+
+Examples:
+
+Good:
+
+GET /api/v1/products
+
+GET /api/v1/orders/123
+
+POST /api/v1/orders
+
+Bad:
+
+GET /api/v1/getProducts
+
+POST /api/v1/createOrder
+
+PUT /api/v1/updateProduct
+
+---
+
+# 2. Authentication
+
+Header:
+
+Authorization: Bearer <jwt-token>
+
+Example:
+
+Authorization: Bearer eyJhbGciOi...
+
+Protected Endpoints:
+
+All endpoints except:
+
+POST /api/v1/auth/register
+
+POST /api/v1/auth/login
+
+POST /api/v1/auth/refresh
+
+---
+
+# 3. Content Type
+
+Request:
+
+Content-Type: application/json
+
+Response:
+
+Content-Type: application/json
+
+---
+
+# 4. Standard Success Response
+
+{
+"success": true,
+"message": "Operation completed successfully",
+"data": {}
+}
+
+---
+
+# 5. Standard Error Response
+
+{
+"success": false,
+"message": "Validation failed",
+"errors": [
+{
+"field": "email",
+"message": "Email is invalid"
+}
+]
+}
+
+---
+
+# 6. HTTP Status Codes
+
+200 OK
+
+Successful retrieval
+
+201 Created
+
+Resource created
+
+204 No Content
+
+Resource deleted
+
+400 Bad Request
+
+Validation failure
+
+401 Unauthorized
+
+Missing or invalid token
+
+403 Forbidden
+
+Insufficient permission
+
+404 Not Found
+
+Resource does not exist
+
+409 Conflict
+
+Business rule violation
+
+422 Unprocessable Entity
+
+Domain validation failure
+
+500 Internal Server Error
+
+Unexpected error
+
+---
+
+# 7. Pagination Standard
+
+All collection endpoints must support:
+
+?page=0
+
+&size=20
+
+&sort=name,asc
+
+Example:
+
+GET /api/v1/products?page=0&size=20&sort=name,asc
+
+---
+
+Pagination Response
+
+{
+"success": true,
+"data": {
+"content": [],
+"page": 0,
+"size": 20,
+"totalElements": 100,
+"totalPages": 5,
+"first": true,
+"last": false
+}
+}
+
+Default Page Size:
+
+20
+
+Maximum Page Size:
+
+100
+
+---
+
+# 8. Sorting Standard
+
+Single Sort
+
+GET /api/v1/products?sort=name,asc
+
+Descending
+
+GET /api/v1/products?sort=price,desc
+
+Multiple Sorts
+
+GET /api/v1/products?sort=category,asc&sort=price,desc
+
+---
+
+# 9. Filtering Standard
+
+Products
+
+GET /api/v1/products
+
+Query Parameters:
+
+categoryId
+
+brandId
+
+minPrice
+
+maxPrice
+
+keyword
+
+Example:
+
+GET /api/v1/products?categoryId=1&minPrice=100&maxPrice=500
+
+---
+
+# 10. API Versioning
+
+Current:
+
+/api/v1
+
+Future:
+
+/api/v2
+
+Breaking changes require a new version.
+
+---
+
+# 11. Auth APIs
+
+Register
+
+POST /api/v1/auth/register
+
+Request
+
+{
+"email": "[john@example.com](mailto:john@example.com)",
+"password": "Password123!",
+"firstName": "John",
+"lastName": "Doe"
+}
+
+Response
+
+201 Created
+
+---
+
+Login
+
+POST /api/v1/auth/login
+
+Request
+
+{
+"email": "[john@example.com](mailto:john@example.com)",
+"password": "Password123!"
+}
+
+Response
+
+{
+"success": true,
+"data": {
+"accessToken": "...",
+"refreshToken": "...",
+"expiresIn": 3600
+}
+}
+
+---
+
+Refresh Token
+
+POST /api/v1/auth/refresh
+
+Request
+
+{
+"refreshToken": "..."
+}
+
+Response
+
+{
+"success": true,
+"data": {
+"accessToken": "..."
+}
+}
+
+---
+
+# 12. User APIs
+
+Get Profile
+
+GET /api/v1/users/me
+
+Update Profile
+
+PUT /api/v1/users/me
+
+List Addresses
+
+GET /api/v1/users/me/addresses
+
+Create Address
+
+POST /api/v1/users/me/addresses
+
+Update Address
+
+PUT /api/v1/users/me/addresses/{addressId}
+
+Delete Address
+
+DELETE /api/v1/users/me/addresses/{addressId}
+
+---
+
+# 13. Catalog APIs
+
+List Products
+
+GET /api/v1/products
+
+Get Product
+
+GET /api/v1/products/{productId}
+
+Search Products
+
+GET /api/v1/products/search
+
+Create Product
+
+POST /api/v1/admin/products
+
+Update Product
+
+PUT /api/v1/admin/products/{productId}
+
+Delete Product
+
+DELETE /api/v1/admin/products/{productId}
+
+---
+
+Categories
+
+GET /api/v1/categories
+
+GET /api/v1/categories/{categoryId}
+
+POST /api/v1/admin/categories
+
+PUT /api/v1/admin/categories/{categoryId}
+
+DELETE /api/v1/admin/categories/{categoryId}
+
+---
+
+# 14. Inventory APIs
+
+Get Stock
+
+GET /api/v1/admin/inventory/{productId}
+
+Update Stock
+
+PUT /api/v1/admin/inventory/{productId}
+
+Reserve Stock
+
+POST /api/v1/admin/inventory/reserve
+
+Release Stock
+
+POST /api/v1/admin/inventory/release
+
+---
+
+# 15. Cart APIs
+
+Get Cart
+
+GET /api/v1/cart
+
+Add Item
+
+POST /api/v1/cart/items
+
+Request
+
+{
+"productId": 1,
+"quantity": 2
+}
+
+Update Item
+
+PUT /api/v1/cart/items/{itemId}
+
+Remove Item
+
+DELETE /api/v1/cart/items/{itemId}
+
+Checkout
+
+POST /api/v1/cart/checkout
+
+---
+
+# 16. Coupon APIs
+
+Validate Coupon
+
+POST /api/v1/coupons/validate
+
+Apply Coupon
+
+POST /api/v1/coupons/apply
+
+Admin Create Coupon
+
+POST /api/v1/admin/coupons
+
+---
+
+# 17. Order APIs
+
+Place Order
+
+POST /api/v1/orders
+
+Get Order
+
+GET /api/v1/orders/{orderId}
+
+List Orders
+
+GET /api/v1/orders
+
+Cancel Order
+
+POST /api/v1/orders/{orderId}/cancel
+
+---
+
+Order Status Values
+
+PENDING
+
+PAID
+
+PROCESSING
+
+SHIPPED
+
+DELIVERED
+
+CANCELLED
+
+REFUNDED
+
+---
+
+# 18. Payment APIs
+
+Create Payment
+
+POST /api/v1/payments
+
+Get Payment
+
+GET /api/v1/payments/{paymentId}
+
+Refund Payment
+
+POST /api/v1/payments/{paymentId}/refund
+
+---
+
+Payment Status Values
+
+PENDING
+
+SUCCESS
+
+FAILED
+
+REFUNDED
+
+---
+
+# 19. Shipment APIs
+
+Create Shipment
+
+POST /api/v1/admin/shipments
+
+Track Shipment
+
+GET /api/v1/shipments/{shipmentId}
+
+Mark Delivered
+
+POST /api/v1/admin/shipments/{shipmentId}/deliver
+
+---
+
+Shipment Status Values
+
+CREATED
+
+PICKED_UP
+
+IN_TRANSIT
+
+OUT_FOR_DELIVERY
+
+DELIVERED
+
+---
+
+# 20. Review APIs
+
+Create Review
+
+POST /api/v1/products/{productId}/reviews
+
+List Reviews
+
+GET /api/v1/products/{productId}/reviews
+
+Delete Review
+
+DELETE /api/v1/reviews/{reviewId}
+
+---
+
+# 21. Reporting APIs
+
+Admin Only
+
+Sales Report
+
+GET /api/v1/admin/reports/sales
+
+Inventory Report
+
+GET /api/v1/admin/reports/inventory
+
+Customer Report
+
+GET /api/v1/admin/reports/customers
+
+---
+
+# 22. OpenAPI Documentation
+
+Swagger UI
+
+/swagger-ui.html
+
+OpenAPI JSON
+
+/v3/api-docs
+
+Every endpoint must contain:
+
+* Summary
+* Description
+* Request Example
+* Response Example
+* Status Codes
+
+---
+
+# 23. Validation Rules
+
+Email
+
+Valid email format
+
+Password
+
+Minimum 8 characters
+
+At least:
+
+* 1 uppercase
+* 1 lowercase
+* 1 number
+* 1 special character
+
+Product Price
+
+Greater than 0
+
+Quantity
+
+Greater than 0
+
+---
+
+# 24. Idempotency
+
+Required For:
+
+Payments
+
+Order Creation
+
+Refunds
+
+Header:
+
+Idempotency-Key
+
+Example:
+
+Idempotency-Key: 8b3d3b9c-21ab-4db4-b93d-f80f53a1d801
+
+---
+
+# 25. API Security Rules
+
+Never expose:
+
+* Passwords
+* Password hashes
+* Internal IDs
+* Secrets
+* API Keys
+
+Sensitive fields must be omitted from responses.
+
+---
+
+# 26. Naming Conventions
+
+Resources
+
+Plural
+
+Examples:
+
+/products
+
+/orders
+
+/users
+
+Path Variables
+
+camelCase
+
+Examples:
+
+productId
+
+orderId
+
+Query Parameters
+
+camelCase
+
+Examples:
+
+minPrice
+
+maxPrice
+
+categoryId
+
+---
+
+# 27. Deprecation Policy
+
+Deprecated endpoints must:
+
+* Remain functional for one major version
+* Be documented in changelog
+* Include deprecation notice in OpenAPI
+
+Example:
+
+Deprecated since v2.0
+
+Removal planned for v3.0
+
+---
+
+# 28. API Definition of Done
+
+An endpoint is complete only when:
+
+* Request DTO created
+* Response DTO created
+* Validation implemented
+* Business logic implemented
+* Integration tests written
+* OpenAPI documented
+* Security configured
+* Error handling implemented
+* Logging added
+* Reviewed and approved
