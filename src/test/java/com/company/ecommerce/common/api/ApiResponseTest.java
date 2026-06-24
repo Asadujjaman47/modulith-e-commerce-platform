@@ -35,10 +35,13 @@ class ApiResponseTest {
     }
 
     @Test
-    void errorResponseKeepsProvidedErrors() {
-        ErrorResponse response = ErrorResponse.of("Validation failed", List.of("name: must not be blank"));
+    void errorResponseKeepsProvidedFieldErrors() {
+        ErrorResponse.FieldError fieldError = new ErrorResponse.FieldError("name", "must not be blank");
+        ErrorResponse response = ErrorResponse.of("Validation failed", List.of(fieldError));
 
         assertThat(response.success()).isFalse();
-        assertThat(response.errors()).containsExactly("name: must not be blank");
+        assertThat(response.errors()).containsExactly(fieldError);
+        assertThat(response.errors().getFirst().field()).isEqualTo("name");
+        assertThat(response.errors().getFirst().message()).isEqualTo("must not be blank");
     }
 }

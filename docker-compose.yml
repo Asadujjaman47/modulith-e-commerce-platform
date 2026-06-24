@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: ecommerce-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
@@ -52,9 +52,11 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
-      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
-      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ecommerce}
+      # App datasource (DB_* scheme). Host/port default to the docker profile (postgres/5432);
+      # credentials are derived from the single POSTGRES_* source of truth.
+      DB_NAME: ${POSTGRES_DB:-ecommerce}
+      DB_USERNAME: ${POSTGRES_USER:-ecommerce}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ecommerce}
     ports:
       - "${APP_PORT:-8080}:8080"
     healthcheck:
