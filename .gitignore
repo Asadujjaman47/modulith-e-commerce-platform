@@ -1,1 +1,11 @@
 .idea
+target/
+*.iml
+.DS_Store
+gh-token.txt
+
+# Local environment (never commit real secrets); .env.example is the tracked template
+.env
+
+# Spring Modulith generated docs
+**/spring-modulith-docs/
