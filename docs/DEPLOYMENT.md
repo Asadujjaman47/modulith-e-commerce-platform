@@ -208,15 +208,15 @@ Allowed Public Ports
 
 # 6. Docker Volumes
 
-Persistent Volumes
+Persistent Volumes (current dev compose)
 
 postgres-data
 
-redis-data
-
-prometheus-data
-
 grafana-data
+
+Redis runs as a cache only (no persistence) in development — PostgreSQL remains the source of
+truth. `redis-data` and `prometheus-data` are added in Phase 9 (Production Readiness) when Redis
+persistence and long-term metrics retention are enabled.
 
 Backups must include all persistent volumes.
 
@@ -277,9 +277,15 @@ Running containers as non-root users and using multi-stage builds are recommende
 
 # 9. Spring Profiles
 
-Profiles
+Current Profiles (implemented)
 
-local
+default — local development. `application.yml`. Datasource/Redis default to localhost so the app
+can run from IntelliJ or the terminal against `docker compose up -d postgres redis`.
+
+docker — application running inside a container. `application-docker.yml`. Datasource/Redis target
+the compose service hostnames (`postgres`, `redis`).
+
+Planned Profiles (Phase 9 — Production Readiness)
 
 dev
 
@@ -287,19 +293,11 @@ staging
 
 prod
 
+To be added as `application-dev.yml`, `application-staging.yml`, `application-prod.yml`.
+
 Startup Example
 
-SPRING_PROFILES_ACTIVE=prod
-
-Profile-specific configuration must reside in:
-
-application-local.yml
-
-application-dev.yml
-
-application-staging.yml
-
-application-prod.yml
+SPRING_PROFILES_ACTIVE=docker
 
 ---
 
@@ -334,6 +332,17 @@ MAIL_USERNAME
 MAIL_PASSWORD
 
 APP_BASE_URL
+
+---
+
+Two-layer naming
+
+The PostgreSQL container image requires `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`. The
+application reads its datasource from the `DB_*` variables above. In `docker compose` the app's
+`DB_*` values are derived from the single `POSTGRES_*` source of truth, so credentials are defined
+once. See `.env.example` for the full template.
+
+JWT_* and MAIL_* variables are introduced in Phase 1 (auth) and Phase 6 (notifications).
 
 ---
 

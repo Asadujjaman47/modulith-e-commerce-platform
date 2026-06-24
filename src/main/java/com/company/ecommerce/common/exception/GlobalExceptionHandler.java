@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -22,9 +21,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-        List<String> errors =
+        List<ErrorResponse.FieldError> errors =
                 ex.getBindingResult().getFieldErrors().stream()
-                        .map(GlobalExceptionHandler::formatFieldError)
+                        .map(e -> new ErrorResponse.FieldError(e.getField(), e.getDefaultMessage()))
                         .toList();
         log.warn("Validation failed: {}", errors);
         return ResponseEntity.badRequest()
@@ -33,9 +32,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
-        List<String> errors =
+        List<ErrorResponse.FieldError> errors =
                 ex.getConstraintViolations().stream()
-                        .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                        .map(v -> new ErrorResponse.FieldError(v.getPropertyPath().toString(), v.getMessage()))
                         .toList();
         log.warn("Constraint violation: {}", errors);
         return ResponseEntity.badRequest()
@@ -68,9 +67,5 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of("Internal server error"));
-    }
-
-    private static String formatFieldError(FieldError error) {
-        return error.getField() + ": " + error.getDefaultMessage();
     }
 }

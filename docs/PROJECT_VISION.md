@@ -612,11 +612,17 @@ mailpit
 
 # 19. Environment Configuration
 
-application.yml
+Implemented:
+
+application.yml (default — local dev)
+
+application-docker.yml (in-container)
+
+Planned (Phase 9):
 
 application-dev.yml
 
-application-test.yml
+application-staging.yml
 
 application-prod.yml
 
@@ -637,6 +643,9 @@ JWT_SECRET
 REDIS_HOST
 
 REDIS_PORT
+
+Note: the PostgreSQL container image also requires POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD;
+in docker compose the app's DB_* values are derived from those. See .env.example.
 
 ---
 
