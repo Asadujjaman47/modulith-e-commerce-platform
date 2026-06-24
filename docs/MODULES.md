@@ -48,6 +48,8 @@ A feature must always belong to exactly one module.
 
 # AUTH MODULE
 
+Status: Implemented (Phase 1)
+
 Package
 
 com.company.ecommerce.auth
@@ -133,6 +135,8 @@ review
 ---
 
 # USER MODULE
+
+Status: Implemented (Phase 1)
 
 Package
 

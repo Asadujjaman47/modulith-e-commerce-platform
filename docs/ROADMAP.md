@@ -14,7 +14,7 @@ Database: PostgreSQL
 
 Deployment: Docker
 
-Status: Planning
+Status: Phase 0 & Phase 1 complete — Phase 2 (Catalog & Inventory) next
 
 ---
 
@@ -105,6 +105,8 @@ CI/CD & Deployment
 
 # Foundation
 
+Status: Complete (merged to main, PR #1)
+
 Goal
 
 Create project skeleton and establish architecture.
@@ -176,6 +178,10 @@ Health endpoint available
 
 # Authentication & User Management
 
+Status: Complete — register / login / refresh (with rotation) / logout, JWT (15 min access, 7 day
+refresh), ROLE_ADMIN/ROLE_CUSTOMER, customer profile + address management. 42 tests passing;
+verified from terminal and Docker.
+
 Goal
 
 Enable user registration and login.
@@ -226,7 +232,11 @@ Events
 
 UserRegisteredEvent
 
+UserLoggedInEvent
+
 CustomerCreatedEvent
+
+CustomerUpdatedEvent
 
 AddressAddedEvent
 
@@ -234,13 +244,13 @@ AddressAddedEvent
 
 Success Criteria
 
-User can register
+User can register ✓
 
-User can login
+User can login ✓
 
-JWT generated
+JWT generated ✓
 
-Profile retrieved successfully
+Profile retrieved successfully ✓
 
 ---
 
@@ -844,11 +854,11 @@ Phase 10
 
 Release 0.1
 
-Foundation
+Foundation ✓
 
 Release 0.2
 
-Authentication & Users
+Authentication & Users ✓
 
 Release 0.3
 

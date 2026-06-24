@@ -623,6 +623,22 @@ Customer APIs
 
 ---
 
+Implementation (Phase 1)
+
+* Security is owned by the `auth` module (`auth.infrastructure.security.SecurityConfig`), not `config`.
+* Stateless `SecurityFilterChain`; `JwtAuthenticationFilter` validates the `Authorization: Bearer`
+  header and sets an `AuthenticatedUser` principal whose name is the user id.
+* Access tokens: HMAC-SHA256 JWT, 15-minute TTL, carrying `sub` (user id), `email`, `role`.
+* Refresh tokens: opaque random strings, 7-day TTL, **SHA-256 hashed and stored in PostgreSQL**
+  (`refresh_tokens`). Refresh rotates the token (old one revoked); logout revokes it.
+* Public endpoints: `/api/v1/auth/{register,login,refresh}`, `/actuator/**`, Swagger. Everything
+  else requires authentication. `@EnableMethodSecurity` enables role checks.
+* The JWT signing secret (`app.jwt.secret`) has a dev-only fallback for local runs; the Docker/deploy
+  path requires `JWT_SECRET` to be set (fails fast otherwise).
+* 401/403 responses use the standard `ErrorResponse` envelope.
+
+---
+
 # 16. Persistence Architecture
 
 Database
@@ -635,13 +651,15 @@ Flyway
 
 Naming Convention
 
-V1__init.sql
+V1__init.sql        (foundation: pgcrypto, event_publication)
 
-V2__catalog.sql
+V2__auth.sql        (auth_users, refresh_tokens)
 
-V3__inventory.sql
+V3__user.sql        (customers, customer_addresses)
 
-V4__order.sql
+V4__catalog.sql     (next)
+
+Existing migrations are immutable; schema changes always add a new versioned migration.
 
 ---
 

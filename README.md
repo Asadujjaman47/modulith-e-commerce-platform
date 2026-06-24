@@ -9,6 +9,10 @@ A production-grade e-commerce platform built as a **Modular Monolith** with **Sp
 See [`docs/`](docs) for the full design (`ARCHITECTURE.md`, `MODULES.md`, `API_GUIDE.md`,
 `ROADMAP.md`, `DEPLOYMENT.md`, ADRs). Current status: see [`DEVELOPMENT_STATUS.md`](DEVELOPMENT_STATUS.md).
 
+**Implemented so far:** Phase 0 (foundation) and Phase 1 (`auth` + `user`) — registration, login,
+JWT refresh with rotation, logout, customer profile and address management. Endpoints under
+`/api/v1/auth/*` and `/api/v1/users/*` (browse them in Swagger UI). Phase 2 (catalog) is next.
+
 ## Prerequisites
 
 - JDK 21
@@ -52,6 +56,23 @@ docker compose up -d --build  # app + postgres + redis + mailpit + prometheus + 
 | Mailpit (mail UI) | http://localhost:8025                    |
 
 Stop with `docker compose down` (add `-v` to also drop volumes).
+
+> **Postgres major-version mismatch.** The DB lives in the `postgres-data` named volume, which is
+> stamped with the Postgres major version that first created it. If you upgrade the `postgres` image
+> major version in `docker-compose.yml` (e.g. 16 → 17), an existing volume will block startup with:
+>
+> ```
+> FATAL: database files are incompatible with server
+> DETAIL: The data directory was initialized by PostgreSQL version 16, ... not compatible with this version 17.
+> ```
+>
+> The image is pinned to **Postgres 17** to match the Testcontainers integration tests. To reset the
+> local dev database (safe — it holds only throwaway dev data):
+>
+> ```bash
+> docker compose down -v                                   # drop all stack volumes, or…
+> docker volume rm modulith-e-commerce-platform_postgres-data   # just the DB volume
+> ```
 
 ## Test
 

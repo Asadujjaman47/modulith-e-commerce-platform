@@ -293,7 +293,8 @@ Response
 "data": {
 "accessToken": "...",
 "refreshToken": "...",
-"expiresIn": 3600
+"expiresIn": 900,
+"tokenType": "Bearer"
 }
 }
 
@@ -309,14 +310,33 @@ Request
 "refreshToken": "..."
 }
 
-Response
+Response (tokens are rotated: the presented refresh token is revoked and a new pair issued)
 
 {
 "success": true,
 "data": {
-"accessToken": "..."
+"accessToken": "...",
+"refreshToken": "...",
+"expiresIn": 900,
+"tokenType": "Bearer"
 }
 }
+
+---
+
+Logout
+
+POST /api/v1/auth/logout
+
+Requires a valid access token (Authorization: Bearer ...).
+
+Request
+
+{
+"refreshToken": "..."
+}
+
+Revokes the supplied refresh token. The short-lived access token expires naturally.
 
 ---
 
