@@ -28,6 +28,17 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+app:
+  jwt:
+    # HMAC-SHA256 signing secret (base64-encoded, >= 256 bits / 32 bytes).
+    # The fallback below is a PUBLIC dev-only placeholder for local runs (IntelliJ / spring-boot:run)
+    # and MUST NOT be used anywhere else. The Docker/deploy path requires JWT_SECRET to be set
+    # explicitly (docker-compose has no fallback and fails fast if it is missing).
+    secret: ${JWT_SECRET:ZGV2LXNlY3JldC1jaGFuZ2UtbWUtYXQtbGVhc3QtMzItYnl0ZXMtbG9uZyE=}
+    issuer: ecommerce
+    access-token-ttl: ${JWT_ACCESS_TTL:PT15M}
+    refresh-token-ttl: ${JWT_REFRESH_TTL:P7D}
+
 springdoc:
   api-docs:
     path: /v3/api-docs

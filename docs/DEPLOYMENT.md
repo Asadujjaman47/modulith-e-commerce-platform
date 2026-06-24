@@ -319,9 +319,11 @@ REDIS_HOST
 
 REDIS_PORT
 
-JWT_SECRET
+JWT_SECRET (base64 HMAC-SHA256 secret, >= 32 bytes; required on docker/deploy — no fallback)
 
-JWT_EXPIRATION
+JWT_ACCESS_TTL (ISO-8601 duration, default PT15M)
+
+JWT_REFRESH_TTL (ISO-8601 duration, default P7D)
 
 MAIL_HOST
 
@@ -342,7 +344,9 @@ application reads its datasource from the `DB_*` variables above. In `docker com
 `DB_*` values are derived from the single `POSTGRES_*` source of truth, so credentials are defined
 once. See `.env.example` for the full template.
 
-JWT_* and MAIL_* variables are introduced in Phase 1 (auth) and Phase 6 (notifications).
+JWT_* variables are implemented (Phase 1, auth). `JWT_SECRET` has a dev-only fallback in
+`application.yml` for local runs, but the Docker/deploy path supplies no fallback and fails fast if
+it is unset. MAIL_* variables arrive in Phase 6 (notifications).
 
 ---
 

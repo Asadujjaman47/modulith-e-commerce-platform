@@ -57,6 +57,9 @@ services:
       DB_NAME: ${POSTGRES_DB:-ecommerce}
       DB_USERNAME: ${POSTGRES_USER:-ecommerce}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-ecommerce}
+      # JWT signing secret. Required — no fallback, so the stack fails fast if it is unset
+      # (copy .env.example to .env and set a real value) rather than booting with a known key.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set — run "cp .env.example .env" and set a value}
     ports:
       - "${APP_PORT:-8080}:8080"
     healthcheck:
