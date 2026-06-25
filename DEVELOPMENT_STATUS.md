@@ -1,6 +1,6 @@
 # Current Milestone
 
-Phase 3 — Cart (next)
+Phase 4 — Order (next)
 
 ## Completed
 
@@ -72,14 +72,47 @@ Phase 3 — Cart (next)
   browse/search/paginate → set stock → reserve → release; over-reserve 409; non-admin 403),
   Modulith verification
 
+### Phase 3 — Cart & Coupon
+
+- `cart` module
+  - Aggregates: `Cart` (carts, one per customer) with `CartItem` children (cart_items)
+  - Use cases: get-or-create cart, add item, update quantity, remove item
+  - Each item snapshots the catalog product name + unit price at add time; availability is checked
+    against inventory on add/update (over-cart → HTTP 409, inactive/missing product → 409/404)
+  - Authenticated customer API: `GET /api/v1/cart`, `POST /api/v1/cart/items`,
+    `PUT/DELETE /api/v1/cart/items/{itemId}` (customer resolved from the JWT principal)
+  - Reads catalog/inventory via their new `spi` named interfaces (`CatalogQuery`, `InventoryQuery`)
+  - Consumes catalog `ProductUpdatedEvent` (`@ApplicationModuleListener`) to refresh price/name
+    snapshots; `StockUpdatedEvent` auto-trim deferred
+  - MapStruct mapper (`CartMapper`)
+- `coupon` module (dependency-free)
+  - Aggregates: `Coupon` (coupons), `CouponUsage` (coupon_usages)
+  - Use cases: create coupon (admin), validate coupon, apply coupon — validation/discount operate
+    on an order amount supplied by the caller (percentage with optional cap, or fixed amount;
+    validity window, minimum order, usage-limit rules enforced in the domain)
+  - APIs: `POST /api/v1/admin/coupons` (`ROLE_ADMIN`), `POST /api/v1/coupons/validate`,
+    `POST /api/v1/coupons/apply`
+  - Events published (named interface): `CouponAppliedEvent`, `CouponExpiredEvent` (lazy expiry on
+    validate/apply); `OrderCreatedEvent` consumer deferred until the order module exists
+  - MapStruct mapper (`CouponMapper`)
+- `catalog` / `inventory`: added read-only `spi` named interfaces (`CatalogQuery` + `ProductView`,
+  `InventoryQuery`) so `cart` can read product/stock data without crossing module internals
+- Flyway: `V6__cart.sql`, `V7__coupon.sql`
+- Tests: cart & coupon domain invariants, use-case unit tests (Mockito), and a full Testcontainers
+  integration test (create/stock product → add to cart with price snapshot → update qty →
+  over-stock 409 → remove; admin creates coupon → validate → apply; non-admin 403),
+  Modulith verification
+- Note: cart checkout (`CheckoutCartUseCase` / `CartCheckedOutEvent`) is deferred to the order phase
+
 ## In Progress
 
 None
 
 ## Next
 
-- Phase 3: Cart (`cart` module) — shopping cart and cart-item management
+- Phase 4: Order (`order` module) — order lifecycle; will consume `CartCheckedOutEvent` and
+  `CouponAppliedEvent`
 
 ## Current Branch
 
-feature/catalog-inventory
+feature/cart-coupon
