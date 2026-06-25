@@ -14,7 +14,7 @@ Database: PostgreSQL
 
 Deployment: Docker
 
-Status: Phase 0 & Phase 1 complete — Phase 2 (Catalog & Inventory) next
+Status: Phase 0, Phase 1 & Phase 2 complete — Phase 3 (Cart & Coupon) next
 
 ---
 
@@ -257,6 +257,11 @@ Profile retrieved successfully ✓
 # PHASE 2
 
 # Catalog & Inventory
+
+Status: Complete — catalog (products / categories / brands with paginated, sortable, filterable
+search) and inventory (stock tracking, reservation, release; inventory seeded from the catalog
+`ProductCreatedEvent`). Admin CRUD under `/api/v1/admin/*`; public browsing under
+`/api/v1/products|categories|brands`. Flyway `V4__catalog.sql`, `V5__inventory.sql`.
 
 Goal
 
