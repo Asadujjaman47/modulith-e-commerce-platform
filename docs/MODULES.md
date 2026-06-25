@@ -260,6 +260,8 @@ ManageCategoriesUseCase
 
 ManageBrandsUseCase
 
+CatalogQuery (read-only `spi` named interface: ProductView lookup for other modules)
+
 ---
 
 Published Events
@@ -332,6 +334,8 @@ UpdateStockUseCase
 
 GetStockUseCase
 
+InventoryQuery (read-only `spi` named interface: available-quantity lookup for other modules)
+
 ---
 
 Published Events
@@ -361,6 +365,8 @@ catalog
 ---
 
 # CART MODULE
+
+Status: Implemented (Phase 3)
 
 Package
 
@@ -393,39 +399,43 @@ cart_items
 
 Public APIs
 
+GetCartUseCase
+
 AddToCartUseCase
 
 UpdateCartItemUseCase
 
 RemoveCartItemUseCase
 
-CheckoutCartUseCase
+CheckoutCartUseCase (deferred to the order phase)
 
 ---
 
 Published Events
 
-CartCheckedOutEvent
+CartCheckedOutEvent (deferred to the order phase)
 
 ---
 
 Consumed Events
 
-ProductUpdatedEvent
+ProductUpdatedEvent — refreshes cart-item price/name snapshots
 
-StockUpdatedEvent
+StockUpdatedEvent (auto-trim deferred)
 
 ---
 
 Allowed Dependencies
 
-catalog
+catalog (read via the catalog `spi` named interface: CatalogQuery + ProductView)
 
-inventory
+inventory (read via the inventory `spi` named interface: InventoryQuery)
 
 ---
 
 # COUPON MODULE
+
+Status: Implemented (Phase 3)
 
 Package
 
@@ -459,11 +469,11 @@ coupon_usages
 
 Public APIs
 
+CreateCouponUseCase
+
 ValidateCouponUseCase
 
 ApplyCouponUseCase
-
-CreateCouponUseCase
 
 ---
 
@@ -471,19 +481,19 @@ Published Events
 
 CouponAppliedEvent
 
-CouponExpiredEvent
+CouponExpiredEvent (published on lazy expiry during validate/apply)
 
 ---
 
 Consumed Events
 
-OrderCreatedEvent
+OrderCreatedEvent (deferred until the order module exists)
 
 ---
 
 Allowed Dependencies
 
-None
+None (validation/apply operate on an order amount supplied by the caller)
 
 ---
 

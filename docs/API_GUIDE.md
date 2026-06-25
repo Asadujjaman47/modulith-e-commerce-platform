@@ -482,9 +482,15 @@ Request
 
 # 15. Cart APIs
 
+All cart endpoints require authentication; the cart belongs to the customer resolved from the JWT.
+Each line snapshots the product name and unit price at add time. Responses include the cart items
+and the computed `subtotal`.
+
 Get Cart
 
 GET /api/v1/cart
+
+Returns the customer's cart, creating an empty one on first access.
 
 Add Item
 
@@ -493,13 +499,21 @@ POST /api/v1/cart/items
 Request
 
 {
-"productId": 1,
+"productId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
 "quantity": 2
 }
+
+Adding an inactive or unknown product returns 409/404; exceeding available stock returns 409.
 
 Update Item
 
 PUT /api/v1/cart/items/{itemId}
+
+Request
+
+{
+"quantity": 3
+}
 
 Remove Item
 
@@ -507,23 +521,75 @@ DELETE /api/v1/cart/items/{itemId}
 
 Checkout
 
-POST /api/v1/cart/checkout
+POST /api/v1/cart/checkout (planned — delivered with the order module)
 
 ---
 
 # 16. Coupon APIs
 
+Validate and apply operate on an order amount supplied in the request, so the coupon module stays
+independent of cart/order. Both require authentication.
+
 Validate Coupon
 
 POST /api/v1/coupons/validate
+
+Request
+
+{
+"code": "SAVE20",
+"orderAmount": 150.00
+}
+
+Response
+
+{
+"success": true,
+"data": {
+"valid": true,
+"code": "SAVE20",
+"discountType": "PERCENTAGE",
+"orderAmount": 150.00,
+"discountAmount": 30.00,
+"finalAmount": 120.00
+}
+}
+
+An inactive, expired, usage-exhausted, or below-minimum coupon returns 409; an unknown code 404.
 
 Apply Coupon
 
 POST /api/v1/coupons/apply
 
+Request
+
+{
+"code": "SAVE20",
+"orderAmount": 150.00
+}
+
+Records a coupon usage for the authenticated customer, publishes `CouponAppliedEvent`, and returns
+the discount and `finalAmount`.
+
 Admin Create Coupon
 
 POST /api/v1/admin/coupons
+
+Request
+
+{
+"code": "SAVE20",
+"description": "20% off orders over $100",
+"discountType": "PERCENTAGE",
+"discountValue": 20,
+"minOrderAmount": 100.00,
+"maxDiscountAmount": 50.00,
+"validFrom": "2026-06-01T00:00:00Z",
+"validUntil": "2026-12-31T23:59:59Z",
+"usageLimit": 1000
+}
+
+`discountType` is `PERCENTAGE` or `FIXED_AMOUNT`. Requires `ROLE_ADMIN`.
 
 ---
 
