@@ -14,7 +14,7 @@ Database: PostgreSQL
 
 Deployment: Docker
 
-Status: Phase 0, Phase 1 & Phase 2 complete — Phase 3 (Cart & Coupon) next
+Status: Phase 0–3 complete (Foundation, Auth & User, Catalog & Inventory, Cart & Coupon) — Phase 4 (Order) next
 
 ---
 
@@ -338,6 +338,11 @@ Inventory reservations work
 # PHASE 3
 
 # Cart & Coupon
+
+Status: Complete — per-customer cart (add/update/remove with live inventory checks and product
+name/price snapshots) and coupons (admin create; validate/apply against a supplied order amount,
+percentage or fixed with validity-window, minimum-order and usage-limit rules). Flyway
+`V6__cart.sql`, `V7__coupon.sql`. Released as `v0.4.0`.
 
 Goal
 
@@ -867,11 +872,11 @@ Authentication & Users ✓
 
 Release 0.3
 
-Catalog & Inventory
+Catalog & Inventory ✓
 
 Release 0.4
 
-Cart & Coupon
+Cart & Coupon ✓
 
 Release 0.5
 
