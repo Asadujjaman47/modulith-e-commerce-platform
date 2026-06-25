@@ -202,6 +202,8 @@ None
 
 # CATALOG MODULE
 
+Status: Implemented (Phase 2)
+
 Package
 
 com.company.ecommerce.catalog
@@ -226,6 +228,8 @@ Category
 
 Brand
 
+(ProductImage is a child entity of the Product aggregate, not an aggregate root.)
+
 ---
 
 Database Tables
@@ -248,7 +252,13 @@ UpdateProductUseCase
 
 GetProductUseCase
 
+DeleteProductUseCase
+
 SearchProductUseCase
+
+ManageCategoriesUseCase
+
+ManageBrandsUseCase
 
 ---
 
@@ -275,6 +285,8 @@ None
 ---
 
 # INVENTORY MODULE
+
+Status: Implemented (Phase 2)
 
 Package
 
@@ -334,9 +346,11 @@ StockUpdatedEvent
 
 Consumed Events
 
-OrderCreatedEvent
+ProductCreatedEvent (catalog) — seeds a zero-stock inventory record
 
-OrderCancelledEvent
+OrderCreatedEvent (deferred until the order module exists)
+
+OrderCancelledEvent (deferred until the order module exists)
 
 ---
 

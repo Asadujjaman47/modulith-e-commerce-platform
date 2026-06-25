@@ -9,9 +9,12 @@ A production-grade e-commerce platform built as a **Modular Monolith** with **Sp
 See [`docs/`](docs) for the full design (`ARCHITECTURE.md`, `MODULES.md`, `API_GUIDE.md`,
 `ROADMAP.md`, `DEPLOYMENT.md`, ADRs). Current status: see [`DEVELOPMENT_STATUS.md`](DEVELOPMENT_STATUS.md).
 
-**Implemented so far:** Phase 0 (foundation) and Phase 1 (`auth` + `user`) — registration, login,
-JWT refresh with rotation, logout, customer profile and address management. Endpoints under
-`/api/v1/auth/*` and `/api/v1/users/*` (browse them in Swagger UI). Phase 2 (catalog) is next.
+**Implemented so far:** Phase 0 (foundation), Phase 1 (`auth` + `user`) — registration, login,
+JWT refresh with rotation, logout, customer profile and address management — and Phase 2
+(`catalog` + `inventory`) — products, categories, brands with paginated/sortable search, plus
+stock tracking with reservation and release. Endpoints under `/api/v1/auth/*`, `/api/v1/users/*`,
+`/api/v1/products|categories|brands*`, and `/api/v1/admin/*` (browse them in Swagger UI). Phase 3
+(cart) is next.
 
 ## Prerequisites
 

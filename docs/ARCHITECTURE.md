@@ -657,7 +657,9 @@ V2__auth.sql        (auth_users, refresh_tokens)
 
 V3__user.sql        (customers, customer_addresses)
 
-V4__catalog.sql     (next)
+V4__catalog.sql     (categories, brands, products, product_images)
+
+V5__inventory.sql   (inventory, stock_reservations, inventory_transactions)
 
 Existing migrations are immutable; schema changes always add a new versioned migration.
 

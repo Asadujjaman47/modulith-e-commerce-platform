@@ -374,6 +374,9 @@ List Products
 
 GET /api/v1/products
 
+Supports pagination (`page`, `size`, `sort`) and filters: `categoryId`, `brandId`, `minPrice`,
+`maxPrice`. Returns the standard `PageResponse` envelope. Only active products are listed.
+
 Get Product
 
 GET /api/v1/products/{productId}
@@ -381,6 +384,13 @@ GET /api/v1/products/{productId}
 Search Products
 
 GET /api/v1/products/search
+
+Keyword search over product name, description and SKU via `keyword`, plus the same filters and
+pagination as the list endpoint.
+
+Example:
+
+GET /api/v1/products/search?keyword=ultrabook&categoryId=...&minPrice=500&page=0&size=20&sort=price,desc
 
 Create Product
 
@@ -410,23 +420,63 @@ DELETE /api/v1/admin/categories/{categoryId}
 
 ---
 
+Brands
+
+GET /api/v1/brands
+
+GET /api/v1/brands/{brandId}
+
+POST /api/v1/admin/brands
+
+PUT /api/v1/admin/brands/{brandId}
+
+DELETE /api/v1/admin/brands/{brandId}
+
+---
+
 # 14. Inventory APIs
+
+All inventory endpoints require `ROLE_ADMIN`. Responses report `quantityOnHand`,
+`quantityReserved` and derived `quantityAvailable`.
 
 Get Stock
 
 GET /api/v1/admin/inventory/{productId}
 
-Update Stock
+Update Stock (sets absolute on-hand quantity)
 
 PUT /api/v1/admin/inventory/{productId}
+
+Request
+
+{
+"quantityOnHand": 100,
+"reason": "Initial receipt"
+}
 
 Reserve Stock
 
 POST /api/v1/admin/inventory/reserve
 
+Request
+
+{
+"productId": "...",
+"quantity": 2,
+"reference": "order-1"
+}
+
+Returns 409 when insufficient stock is available.
+
 Release Stock
 
 POST /api/v1/admin/inventory/release
+
+Request
+
+{
+"reservationId": "..."
+}
 
 ---
 
