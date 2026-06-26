@@ -395,8 +395,6 @@ StockReservedEvent
 
 StockReleasedEvent
 
-CartCheckedOutEvent
-
 OrderCreatedEvent
 
 OrderCancelledEvent
@@ -508,6 +506,18 @@ Audit Module
 ↓
 
 Store Audit Record
+
+---
+
+Implementation note (Phase 4): the diagrams above describe the conceptual business flow. As built,
+the **order** module orchestrates the modules it depends on (cart, coupon, inventory) — it reserves
+stock, clears the cart and records coupon usage through their `spi` commands rather than those
+modules consuming `OrderCreatedEvent`. This keeps the module dependency graph acyclic (order reads
+cart, and `cart -> inventory`, so neither may depend back on order). Each side effect still runs
+**after** the place-order transaction commits and in **its own** transaction, via in-module
+`@ApplicationModuleListener`s on the order events. Genuinely downstream modules that order does not
+read (payment, notification, audit, and review/reporting on `OrderCompletedEvent`) consume the order
+events directly.
 
 ---
 

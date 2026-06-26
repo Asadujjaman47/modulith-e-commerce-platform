@@ -39,14 +39,21 @@ public class CouponUsage extends AuditableEntity {
     @Column(name = "used_at", nullable = false)
     private Instant usedAt;
 
-    private CouponUsage(UUID couponId, UUID customerId, BigDecimal discountAmount) {
+    private CouponUsage(UUID couponId, UUID customerId, UUID orderId, BigDecimal discountAmount) {
         this.couponId = couponId;
         this.customerId = customerId;
+        this.orderId = orderId;
         this.discountAmount = discountAmount;
         this.usedAt = Instant.now();
     }
 
     public static CouponUsage record(UUID couponId, UUID customerId, BigDecimal discountAmount) {
-        return new CouponUsage(couponId, customerId, discountAmount);
+        return new CouponUsage(couponId, customerId, null, discountAmount);
+    }
+
+    /** Records a usage linked to the concrete order it was applied to. */
+    public static CouponUsage record(
+            UUID couponId, UUID customerId, UUID orderId, BigDecimal discountAmount) {
+        return new CouponUsage(couponId, customerId, orderId, discountAmount);
     }
 }

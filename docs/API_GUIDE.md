@@ -595,21 +595,95 @@ Request
 
 # 17. Order APIs
 
+All order endpoints require authentication. An order is placed from the authenticated customer's
+current cart; the response is the standard envelope wrapping an `OrderResponse`.
+
 Place Order
 
 POST /api/v1/orders
+
+Request (the contents come from the cart; pick a saved address and optionally a coupon)
+
+{
+"addressId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+"couponCode": "SAVE20"
+}
+
+Send an optional `Idempotency-Key` header so a retried request returns the original order instead of
+creating a duplicate.
+
+Response
+
+201 Created
+
+{
+"success": true,
+"message": "Order placed",
+"data": {
+"id": "...",
+"orderNumber": "ORD-20260626-AB12CD",
+"status": "PENDING",
+"items": [ { "productId": "...", "productName": "UltraBook 14", "unitPrice": 1299.00, "quantity": 2, "lineTotal": 2598.00 } ],
+"shippingAddress": { "line1": "221B Baker St", "city": "London", "postalCode": "NW1 6XE", "country": "GB" },
+"currency": "USD",
+"subtotal": 2598.00,
+"couponCode": "SAVE20",
+"discountAmount": 200.00,
+"totalAmount": 2398.00,
+"placedAt": "2026-06-26T10:15:00Z",
+"cancelledAt": null
+}
+}
+
+An empty cart, insufficient stock, or an invalid coupon → 409; an unknown address or coupon → 404.
 
 Get Order
 
 GET /api/v1/orders/{orderId}
 
-List Orders
+Returns the order if it belongs to the caller, otherwise 404.
+
+List Orders (history)
 
 GET /api/v1/orders
+
+Paginated (`page`, `size`, `sort`), with an optional `status` filter. Returns the standard
+`PageResponse` of `OrderSummaryResponse`.
 
 Cancel Order
 
 POST /api/v1/orders/{orderId}/cancel
+
+Cancels the caller's order while it is PENDING/PAID/PROCESSING (releases reserved stock); 409 if it
+can no longer be cancelled.
+
+---
+
+Admin Order APIs (require ROLE_ADMIN)
+
+List All Orders
+
+GET /api/v1/admin/orders
+
+Paginated, with an optional `status` filter.
+
+Get Any Order
+
+GET /api/v1/admin/orders/{orderId}
+
+Update Order Status
+
+PUT /api/v1/admin/orders/{orderId}/status
+
+Request
+
+{
+"status": "PROCESSING"
+}
+
+Transitions are guarded: PENDING → PAID|PROCESSING|CANCELLED, PAID → PROCESSING|CANCELLED|REFUNDED,
+PROCESSING → SHIPPED|CANCELLED, SHIPPED → DELIVERED, DELIVERED → REFUNDED. An illegal transition →
+409. Reaching DELIVERED publishes `OrderCompletedEvent`.
 
 ---
 

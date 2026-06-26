@@ -12,6 +12,7 @@ codebase.
 | [PHASE1 — Auth & User](PHASE1-auth-user.md) | `auth`, `user` | register, login, refresh, logout, profile, addresses |
 | [PHASE2 — Catalog & Inventory](PHASE2-catalog-inventory.md) | `catalog`, `inventory` | brands, categories, products, search, stock reserve/release |
 | [PHASE3 — Cart & Coupon](PHASE3-cart-coupon.md) | `cart`, `coupon` | cart items, coupon create/validate/apply |
+| [PHASE4 — Order](PHASE4-order.md) | `order` | place/get/list/cancel orders, admin status lifecycle |
 
 Run the guides **in order** within a phase — later steps reuse IDs and tokens captured by
 earlier ones.
