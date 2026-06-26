@@ -14,6 +14,7 @@ codebase.
 | [PHASE3 — Cart & Coupon](PHASE3-cart-coupon.md) | `cart`, `coupon` | cart items, coupon create/validate/apply |
 | [PHASE4 — Order](PHASE4-order.md) | `order` | place/get/list/cancel orders, admin status lifecycle |
 | [PHASE5 — Payment & Shipment](PHASE5-payment-shipment.md) | `payment`, `shipment` | process/get/list payments, admin refund, shipment create/track/status/deliver |
+| [PHASE6 — Notification & Review](PHASE6-notification-review.md) | `notification`, `review` | event-driven emails (Mailpit), create/list/delete reviews, rating summary, admin moderation |
 
 Run the guides **in order** within a phase — later steps reuse IDs and tokens captured by
 earlier ones.
@@ -92,6 +93,7 @@ Errors use a parallel envelope produced by the `GlobalExceptionHandler`:
 | `401` | Missing/invalid/expired access token |
 | `403` | Authenticated but lacks `ROLE_ADMIN` |
 | `404` | Resource not found |
+| `405` | Wrong HTTP method for the route |
 | `409` | Business-rule violation (duplicate slug/SKU/code, insufficient stock, coupon not applicable, …) |
 
 ---

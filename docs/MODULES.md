@@ -176,7 +176,8 @@ UpdateCustomerUseCase
 
 GetCustomerUseCase
 
-UserQuery (read-only `spi`: resolve a customer's address for other modules — used by `order`)
+UserQuery (read-only `spi`: resolve a customer's address — used by `order`; and a CustomerView with
+the display name — used by `review` to snapshot the review author)
 
 ---
 
@@ -748,6 +749,8 @@ payment (events named interface — consumes PaymentCompletedEvent)
 
 # NOTIFICATION MODULE
 
+Status: Implemented (Phase 6)
+
 Package
 
 com.company.ecommerce.notification
@@ -756,21 +759,23 @@ com.company.ecommerce.notification
 
 Responsibilities
 
-* Email notifications
-* SMS notifications
-* Push notifications
+* Email notifications (event-driven)
 
 ---
 
 Aggregate Roots
 
-None
+None (the module persists a NotificationLog record per delivery and a NotificationRecipient replica;
+neither is a business aggregate)
 
 ---
 
 Database Tables
 
 notification_logs
+
+notification_recipients (local replica of recipient email/name, seeded from UserRegisteredEvent so the
+module can address later events without depending on the user module)
 
 ---
 
@@ -790,25 +795,30 @@ NotificationSentEvent
 
 Consumed Events
 
-UserRegisteredEvent
+UserRegisteredEvent (auth) — seed the recipient replica + send a welcome email
 
-OrderCreatedEvent
+OrderCreatedEvent (order) — order confirmation
 
-PaymentCompletedEvent
+PaymentCompletedEvent (payment) — payment received
 
-ShipmentCreatedEvent
+ShipmentCreatedEvent (shipment) — shipment dispatched
 
-ShipmentDeliveredEvent
+ShipmentDeliveredEvent (shipment) — delivery confirmation
 
 ---
 
 Allowed Dependencies
 
-None
+None. The module consumes only the published `events` named interfaces and resolves recipient
+addresses from its own replica (the `customerId` on order/payment/shipment events equals the auth
+`userId` used as the replica key). Email delivery failures are recorded as FAILED notification logs and
+never propagate, so a mail outage cannot disrupt the triggering business flow.
 
 ---
 
 # REVIEW MODULE
+
+Status: Implemented (Phase 6)
 
 Package
 
@@ -819,7 +829,7 @@ com.company.ecommerce.review
 Responsibilities
 
 * Product reviews
-* Ratings
+* Ratings (aggregate rating per product)
 * Moderation
 
 ---
@@ -828,15 +838,20 @@ Aggregate Roots
 
 Review
 
-Rating
+ProductRating (table `ratings`: running count/sum + derived average per product)
+
+(ReviewEligibility is an internal replica marking customers who may write reviews, not a business
+aggregate.)
 
 ---
 
 Database Tables
 
-reviews
+reviews (unique per product+customer; rating constrained to 1–5)
 
 ratings
+
+review_eligibility (local replica seeded from OrderCompletedEvent)
 
 ---
 
@@ -844,9 +859,11 @@ Public APIs
 
 CreateReviewUseCase
 
-GetReviewsUseCase
+GetReviewsUseCase (paginated product reviews + aggregate rating summary)
 
-DeleteReviewUseCase
+DeleteReviewUseCase (owner-scoped)
+
+ModerateReviewUseCase (admin: hide/restore, keeps the rating in sync)
 
 ---
 
@@ -858,15 +875,16 @@ ReviewCreatedEvent
 
 Consumed Events
 
-OrderCompletedEvent
+OrderCompletedEvent (order) — grants the customer review eligibility (customer-level purchase gate: at
+least one delivered order)
 
 ---
 
 Allowed Dependencies
 
-catalog
+catalog (spi: CatalogQuery — validate the product exists and is active)
 
-user
+user (spi: UserQuery.findCustomer — snapshot the author's display name on the review)
 
 ---
 

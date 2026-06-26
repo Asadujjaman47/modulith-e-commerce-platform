@@ -1,6 +1,6 @@
 # Current Milestone
 
-Phase 6 — Notification (next)
+Phase 6 — Notification & Review (in review)
 
 ## Completed
 
@@ -184,15 +184,54 @@ Phase 6 — Notification (next)
   deliver → async order DELIVERED; payment idempotency; admin refund; ownership/admin-only auth),
   Modulith verification
 
+### Phase 6 — Notification & Review
+
+- `notification` module (event-driven, no public API, structurally dependency-free)
+  - Consumes `UserRegisteredEvent` (auth), `OrderCreatedEvent` (order), `PaymentCompletedEvent`
+    (payment), `ShipmentCreatedEvent`/`ShipmentDeliveredEvent` (shipment) via their `events` named
+    interfaces on post-commit `@ApplicationModuleListener`s; for each, sends an email and appends a
+    `NotificationLog`
+  - Keeps a local `NotificationRecipient` replica seeded from `UserRegisteredEvent` so later events
+    (whose `customerId` == the auth `userId`) can be addressed without depending on the `user`
+    module — event-carried state transfer keeps the module dependency-free
+  - Pluggable `EmailSender` (`SmtpEmailSender` over Spring `JavaMailSender` → Mailpit in dev/docker);
+    delivery failures are recorded as `FAILED` logs and never propagate, so a mail outage can't
+    disrupt the triggering flow. `NotificationContentFactory` renders subjects/bodies via text blocks
+  - Events published (named interface): `NotificationSentEvent`
+  - Config: `spring-boot-starter-mail` + `spring.mail.*` (env-overridable; docker → `mailpit`),
+    `app.notification.from-address`
+- `review` module (depends on catalog + user `spi`)
+  - Aggregates: `Review` (reviews, unique per product+customer, rating 1–5 enforced in the domain),
+    `ProductRating` (ratings, running count/sum + derived average per product)
+  - Use cases: create review (validate product active via catalog `spi`, customer-level purchase gate,
+    one-per-product, author-name snapshot via the new user `spi`), list product reviews (paginated) +
+    rating summary, delete own review, admin moderate (hide/restore — keeps the rating in sync)
+  - Purchase gate: an internal `ReviewEligibility` replica seeded from `OrderCompletedEvent` (consumed
+    via the order `events` named interface) — a customer becomes eligible after one delivered order, so
+    review never depends on the order module
+  - Customer API: `GET /api/v1/products/{productId}/reviews` (+ `/summary`),
+    `POST /api/v1/products/{productId}/reviews`, `DELETE /api/v1/reviews/{reviewId}`; Admin API
+    (`ROLE_ADMIN`): `PUT /api/v1/admin/reviews/{reviewId}/status`
+  - Events published (named interface): `ReviewCreatedEvent`; MapStruct `ReviewMapper`
+- `user` module: new `user.spi` `UserQuery.findCustomer(userId)` + `CustomerView` (display name/email)
+- Flyway: `V11__notification.sql` (notification_logs, notification_recipients),
+  `V12__review.sql` (reviews, ratings, review_eligibility)
+- Tests: 249 passing — notification (content factory, send use case incl. failure path, recipient
+  directory, event handlers) + a welcome-flow Testcontainers integration test; review domain (rating
+  bounds, average recompute), use-case unit tests (Mockito), eligibility handler, and a full
+  Testcontainers integration test (admin creates product → register → grant eligibility → review →
+  duplicate 409 → list/summary → ineligible 409 → admin hide/restore → non-admin 403 → owner delete),
+  Modulith verification
+
 ## In Progress
 
-None
+Phase 6 — Notification & Review (PR pending)
 
 ## Next
 
-- Phase 6: Notification (`notification` module) — event-driven (consumes user/order/payment/shipment
-  events); publishes `NotificationSentEvent`
+- Phase 7: Reporting & Audit — read-only projection / activity-log modules consuming the business
+  events published so far
 
 ## Current Branch
 
-main
+feature/notification-review
