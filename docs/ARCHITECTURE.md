@@ -516,8 +516,7 @@ modules consuming `OrderCreatedEvent`. This keeps the module dependency graph ac
 cart, and `cart -> inventory`, so neither may depend back on order). Each side effect still runs
 **after** the place-order transaction commits and in **its own** transaction, via in-module
 `@ApplicationModuleListener`s on the order events. Genuinely downstream modules that order does not
-read (payment, notification, audit, and review/reporting on `OrderCompletedEvent`) consume the order
-events directly.
+read (payment, notification, audit, reporting and review) consume the order events directly.
 
 Implementation note (Phase 5): **payment** and **shipment** both depend on **order** (never the
 reverse). Payment consumes `OrderCreatedEvent` to create a PENDING intent; on a successful charge it
@@ -528,6 +527,14 @@ marks the order `PAID` through the new order `spi` (`OrderLifecycle`). Shipment 
 payment/shipment events (that would form a cycle), so all order-status advancement is pushed in
 through `OrderLifecycle`, whose transitions are idempotent "ensure at least" walks of the happy path —
 tolerant of the unordered async events that drive them.
+
+Implementation note (Phase 7): **reporting** and **audit** are read-only sinks — nothing depends on
+them, so they never form a cycle. **Reporting** consumes `OrderCreatedEvent` (the only order event
+carrying both line items and monetary totals) and records immutable per-order/per-line facts;
+sales/product reports aggregate those facts on demand. Fact writes are idempotent (unique `order_id`),
+so at-least-once delivery cannot double count. **Audit** consumes **every** published business event
+via the modules' `events` named interfaces and appends one immutable `AuditLog` row each. Both run on
+post-commit `@ApplicationModuleListener`s and reference other modules by id value only.
 
 ---
 
