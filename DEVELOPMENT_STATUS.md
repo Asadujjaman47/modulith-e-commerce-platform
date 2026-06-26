@@ -1,6 +1,6 @@
 # Current Milestone
 
-Phase 5 — Payment & Shipment (in review)
+Phase 6 — Notification (next)
 
 ## Completed
 
@@ -195,4 +195,4 @@ None
 
 ## Current Branch
 
-feature/payment-shipment
+main
