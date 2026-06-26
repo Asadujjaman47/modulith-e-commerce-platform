@@ -890,6 +890,8 @@ user (spi: UserQuery.findCustomer — snapshot the author's display name on the 
 
 # REPORTING MODULE
 
+Status: Implemented (Phase 7)
+
 Package
 
 com.company.ecommerce.reporting
@@ -898,9 +900,10 @@ com.company.ecommerce.reporting
 
 Responsibilities
 
-* Sales reports
-* Customer reports
-* Inventory reports
+* Sales reports (orders, units, revenue, discounts over a date window)
+* Product reports (top products by units sold)
+
+(Customer/inventory reports are deferred — not in this phase.)
 
 ---
 
@@ -914,19 +917,19 @@ Read-only projection module
 
 Database Tables
 
-report_views
+sales_facts (one immutable row per placed order)
 
-materialized_reports
+product_sales_facts (one immutable row per order line)
 
 ---
 
 Public APIs
 
-SalesReportUseCase
+SalesReportUseCase (grand totals + per-day breakdown over a date window)
 
-InventoryReportUseCase
+ProductReportUseCase (top products by units sold, paginated)
 
-CustomerReportUseCase
+Admin API (`ROLE_ADMIN`): `GET /api/v1/admin/reports/sales`, `GET /api/v1/admin/reports/products`
 
 ---
 
@@ -938,23 +941,24 @@ None
 
 Consumed Events
 
-OrderCompletedEvent
+OrderCreatedEvent (order) — records the per-order sales fact and per-line product facts
 
-PaymentCompletedEvent
-
-ShipmentDeliveredEvent
-
-ReviewCreatedEvent
+> Note: the earlier design listed OrderCompletedEvent/PaymentCompletedEvent/ShipmentDeliveredEvent/
+> ReviewCreatedEvent. Only OrderCreatedEvent carries both line items and monetary totals, so it is the
+> single source for the sales and product projections. Fact writes are idempotent (unique `order_id`),
+> so at-least-once delivery cannot double count.
 
 ---
 
 Allowed Dependencies
 
-None
+None (consumes only the order `events` named interface; references orders/customers/products by id)
 
 ---
 
 # AUDIT MODULE
+
+Status: Implemented (Phase 7)
 
 Package
 
@@ -964,9 +968,8 @@ com.company.ecommerce.audit
 
 Responsibilities
 
-* Business activity logging
-* Security auditing
-* Compliance tracking
+* Business activity logging (append-only audit trail, one row per event)
+* User activity timeline (audit entries for a single acting customer)
 
 ---
 
@@ -978,13 +981,18 @@ AuditLog
 
 Database Tables
 
-audit_logs
+audit_logs (immutable; indexed by category, event type, entity id, actor id, occurred-at)
 
 ---
 
 Public APIs
 
-SearchAuditLogUseCase
+SearchAuditLogUseCase (paginated trail search, filters: category, eventType, entityId, actorId, time
+window)
+
+GetUserActivityUseCase (per-user activity timeline)
+
+Admin API (`ROLE_ADMIN`): `GET /api/v1/admin/audit-logs`, `GET /api/v1/admin/audit-logs/activity/{userId}`
 
 ---
 
@@ -996,13 +1004,18 @@ None
 
 Consumed Events
 
-ALL BUSINESS EVENTS
+ALL BUSINESS EVENTS — auth (UserRegistered/UserLoggedIn), user (CustomerCreated/CustomerUpdated/
+AddressAdded), catalog (ProductCreated/Updated/Deleted), inventory (StockReserved/Released/Updated),
+coupon (CouponApplied/Expired), order (OrderCreated/Cancelled/Completed), payment (PaymentCompleted/
+Failed/Refunded), shipment (ShipmentCreated/Delivered), review (ReviewCreated), notification
+(NotificationSent)
 
 ---
 
 Allowed Dependencies
 
-None
+None (consumes only the published `events` named interfaces; references entities/actors by id value).
+No module depends on audit, so it is a pure sink and the module graph stays acyclic.
 
 ---
 

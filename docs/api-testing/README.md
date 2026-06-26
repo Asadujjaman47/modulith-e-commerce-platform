@@ -15,6 +15,7 @@ codebase.
 | [PHASE4 — Order](PHASE4-order.md) | `order` | place/get/list/cancel orders, admin status lifecycle |
 | [PHASE5 — Payment & Shipment](PHASE5-payment-shipment.md) | `payment`, `shipment` | process/get/list payments, admin refund, shipment create/track/status/deliver |
 | [PHASE6 — Notification & Review](PHASE6-notification-review.md) | `notification`, `review` | event-driven emails (Mailpit), create/list/delete reviews, rating summary, admin moderation |
+| [PHASE7 — Reporting & Audit](PHASE7-reporting-audit.md) | `reporting`, `audit` | admin sales/product reports, audit-log search, per-user activity timeline |
 
 Run the guides **in order** within a phase — later steps reuse IDs and tokens captured by
 earlier ones.

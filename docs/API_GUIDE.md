@@ -926,17 +926,31 @@ registration, order, payment and shipment events.
 
 Admin Only
 
-Sales Report
+Sales Report (grand totals + per-day breakdown; inclusive `from`/`to` dates)
 
-GET /api/v1/admin/reports/sales
+GET /api/v1/admin/reports/sales?from={yyyy-MM-dd}&to={yyyy-MM-dd}
 
-Inventory Report
+Product Report (top products by units sold; paginated)
 
-GET /api/v1/admin/reports/inventory
+GET /api/v1/admin/reports/products?from={yyyy-MM-dd}&to={yyyy-MM-dd}
 
-Customer Report
+(Order events carry no unit price, so product reports cover units/order counts, not per-product
+revenue. Customer/inventory reports are deferred.)
 
-GET /api/v1/admin/reports/customers
+---
+
+# 21a. Audit APIs
+
+Admin Only
+
+Search Audit Logs (optional filters: category, eventType, entityId, actorId, from, to; paginated,
+most-recent first)
+
+GET /api/v1/admin/audit-logs
+
+User Activity (audit timeline for one acting user; paginated)
+
+GET /api/v1/admin/audit-logs/activity/{userId}
 
 ---
 

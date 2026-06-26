@@ -1,6 +1,6 @@
 # Current Milestone
 
-Phase 6 — Notification & Review (in review)
+Phase 7 — Reporting & Audit (in review)
 
 ## Completed
 
@@ -223,15 +223,50 @@ Phase 6 — Notification & Review (in review)
   duplicate 409 → list/summary → ineligible 409 → admin hide/restore → non-admin 403 → owner delete),
   Modulith verification
 
+### Phase 7 — Reporting & Audit
+
+- `reporting` module (read-only projection, structurally dependency-free)
+  - Owns no business aggregate. Consumes `OrderCreatedEvent` (the only order event carrying both line
+    items and monetary totals) via the order `events` named interface on a post-commit
+    `@ApplicationModuleListener`, recording immutable per-order facts: `SalesFact` (one row per order)
+    and `ProductSalesFact` (one row per line). Reports are computed by aggregating these facts at query
+    time; fact writes are idempotent (guarded by a unique `order_id`), so the at-least-once delivery
+    cannot double count
+  - Use cases: `SalesReportUseCase` (grand totals + per-day breakdown over a date window),
+    `ProductReportUseCase` (top products by units sold, paginated). Order events carry no unit price, so
+    product reports cover units/order-counts, not per-product revenue
+  - Admin API (`ROLE_ADMIN`): `GET /api/v1/admin/reports/sales?from&to`,
+    `GET /api/v1/admin/reports/products?from&to` (paginated). Inverted date window → HTTP 409
+  - Note: `MODULES.md` previously listed reporting consuming OrderCompleted/PaymentCompleted/
+    ShipmentDelivered/ReviewCreated; reconciled to `OrderCreatedEvent` (the only sufficiently rich
+    payload). Customer/inventory reports deferred
+- `audit` module (append-only trail, structurally dependency-free)
+  - Aggregate: `AuditLog` (append-only `audit_logs`). Consumes **all** published business events
+    (auth, user, catalog, inventory, coupon, order, payment, shipment, review, notification) via their
+    `events` named interfaces on post-commit `@ApplicationModuleListener`s (grouped into
+    `Identity`/`Catalog`/`Commerce`/`Engagement` handlers), recording one immutable entry each through a
+    single `AuditLogWriter`. References entities/actors by id value only; no module depends on audit, so
+    it stays a pure sink and the graph stays acyclic
+  - Use cases: `SearchAuditLogUseCase` (paginated trail search via JPA `Specification`s — filters:
+    category, eventType, entityId, actorId, occurred-at window; most-recent first),
+    `GetUserActivityUseCase` (per-user activity timeline)
+  - Admin API (`ROLE_ADMIN`): `GET /api/v1/admin/audit-logs` (search),
+    `GET /api/v1/admin/audit-logs/activity/{userId}`; MapStruct `AuditLogMapper`
+- Flyway: `V13__reporting.sql` (sales_facts, product_sales_facts),
+  `V14__audit.sql` (audit_logs)
+- Tests: reporting handler idempotency + sales/product use-case unit tests; audit handler-mapping +
+  search use-case unit tests; full Testcontainers integration tests for both (publish real events →
+  assert projections/trail via the admin APIs; admin-only 403), Modulith verification
+
 ## In Progress
 
-Phase 6 — Notification & Review (PR pending)
+Phase 7 — Reporting & Audit (PR pending)
 
 ## Next
 
-- Phase 7: Reporting & Audit — read-only projection / activity-log modules consuming the business
-  events published so far
+- Platform hardening / cross-cutting concerns (e.g. observability, security review) — no further
+  business modules remain in the catalog
 
 ## Current Branch
 
-feature/notification-review
+feature/reporting-audit
