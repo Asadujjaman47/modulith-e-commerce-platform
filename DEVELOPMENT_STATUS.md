@@ -1,6 +1,6 @@
 # Current Milestone
 
-Phase 5 — Payment (next)
+Phase 5 — Payment & Shipment (in review)
 
 ## Completed
 
@@ -142,15 +142,57 @@ Phase 5 — Payment (next)
   details/history → ownership 404 → cancel → async stock-release → coupon order → admin status
   lifecycle → non-admin 403 → idempotent replay), Modulith verification
 
+### Phase 5 — Payment & Shipment
+
+- `payment` module
+  - Aggregates: `Payment` (payments, one per order) with `PaymentTransaction` children
+    (payment_transactions, append-only gateway-interaction ledger); `PaymentStatus`
+    (`PENDING`→`SUCCESS`/`FAILED`, `FAILED`→`PENDING` retry, `SUCCESS`→`REFUNDED`) and `PaymentMethod`
+    (`CARD`/`PAYPAL`/`BANK_TRANSFER`)
+  - Use cases: create a PENDING intent on `OrderCreatedEvent`; process a charge through a pluggable
+    `PaymentGateway` (`SimulatedPaymentGateway` approves by default), with `Idempotency-Key` dedupe and
+    failed-payment retry; get (status) and list (history); admin refund
+  - Customer API: `POST /api/v1/payments`, `GET /api/v1/payments` (paginated, `?orderId=`),
+    `GET /api/v1/payments/{id}`; Admin API (`ROLE_ADMIN`): `GET /api/v1/admin/payments/{id}`,
+    `POST /api/v1/admin/payments/{id}/refund`
+  - Events published (named interface): `PaymentCompletedEvent`, `PaymentFailedEvent`,
+    `PaymentRefundedEvent`; MapStruct `PaymentMapper`
+- `shipment` module
+  - Aggregates: `Shipment` (shipments, one per order) with `TrackingRecord` children (tracking_records,
+    append-only history) and an embedded `DeliveryAddress` snapshot; `ShipmentStatus`
+    (`CREATED`→`PICKED_UP`→`IN_TRANSIT`→`OUT_FOR_DELIVERY`→`DELIVERED`)
+  - Use cases: auto-create a shipment on `PaymentCompletedEvent` (snapshotting the address via the
+    order `spi`); admin manual create (idempotent per order), track (owner/admin), advance status,
+    confirm delivery
+  - Customer API: `GET /api/v1/shipments/{id}`; Admin API (`ROLE_ADMIN`): `POST /api/v1/admin/shipments`,
+    `GET /api/v1/admin/shipments/{id}`, `PUT /api/v1/admin/shipments/{id}/status`,
+    `POST /api/v1/admin/shipments/{id}/deliver`
+  - Events published (named interface): `ShipmentCreatedEvent`, `ShipmentDeliveredEvent`; MapStruct
+    `ShipmentMapper`
+- `order` module: new `order.spi` named interface — `OrderQuery`/`OrderView` (read an order) and
+  `OrderLifecycle` ("ensure at least" `markPaid`/`markProcessing`/`markDelivered`, walking the happy
+  path). `UpdateOrderStatusUseCase` refactored to share an `OrderStatusNotifier`
+  - **Orchestration model (acyclic boundaries):** payment/shipment depend on order (never the
+    reverse). Payment marks the order `PAID` and shipment advances it to `PROCESSING`/`DELIVERED` by
+    *pushing* status through the order `spi` from post-commit `@ApplicationModuleListener`s — order
+    does not consume payment/shipment events (that would cycle). The lifecycle calls are idempotent
+    and order-tolerant, so the async events that drive them can arrive in any order
+- Flyway: `V9__payment.sql`, `V10__shipment.sql`
+- Tests: payment & shipment domain state machines, use-case unit tests (Mockito), `spi` service +
+  event-handler unit tests, and a full Testcontainers integration test (register → cart → place order →
+  async payment intent → pay → async order PAID → async shipment auto-create → track → advance status →
+  deliver → async order DELIVERED; payment idempotency; admin refund; ownership/admin-only auth),
+  Modulith verification
+
 ## In Progress
 
 None
 
 ## Next
 
-- Phase 5: Payment (`payment` module) — consumes `OrderCreatedEvent`; publishes
-  `PaymentCompletedEvent`
+- Phase 6: Notification (`notification` module) — event-driven (consumes user/order/payment/shipment
+  events); publishes `NotificationSentEvent`
 
 ## Current Branch
 
-feature/order-management
+feature/payment-shipment

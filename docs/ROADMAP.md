@@ -14,7 +14,7 @@ Database: PostgreSQL
 
 Deployment: Docker
 
-Status: Phase 0–4 complete (Foundation, Auth & User, Catalog & Inventory, Cart & Coupon, Order) — Phase 5 (Payment & Shipment) next
+Status: Phase 0–5 complete (Foundation, Auth & User, Catalog & Inventory, Cart & Coupon, Order, Payment & Shipment) — Phase 6 (Notification) next
 
 ---
 

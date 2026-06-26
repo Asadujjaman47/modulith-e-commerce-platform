@@ -18,9 +18,12 @@ stock tracking with reservation and release — Phase 3 (`cart` + `coupon`) — 
 cart with live stock checks and price snapshots, plus coupon create/validate/apply — and Phase 4
 (`order`) — place an order from the cart (optional coupon, idempotent), cancel it, order
 history/details, and an admin status lifecycle, with stock reservation/release, cart clearing and
-coupon-usage recording driven as post-commit side effects. Endpoints under `/api/v1/auth/*`,
-`/api/v1/users/*`, `/api/v1/products|categories|brands*`, `/api/v1/cart*`, `/api/v1/coupons/*`,
-`/api/v1/orders*`, and `/api/v1/admin/*` (browse them in Swagger UI). Phase 5 (payment) is next.
+coupon-usage recording driven as post-commit side effects — and Phase 5 (`payment` + `shipment`) —
+process a payment for an order through a pluggable gateway (status, history, admin refund) and create
+a shipment with tracking that auto-advances the order to PAID → PROCESSING → DELIVERED. Endpoints
+under `/api/v1/auth/*`, `/api/v1/users/*`, `/api/v1/products|categories|brands*`, `/api/v1/cart*`,
+`/api/v1/coupons/*`, `/api/v1/orders*`, `/api/v1/payments*`, `/api/v1/shipments/*`, and
+`/api/v1/admin/*` (browse them in Swagger UI). Phase 6 (notification) is next.
 
 ## Prerequisites
 

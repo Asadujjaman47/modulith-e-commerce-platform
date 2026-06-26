@@ -556,6 +556,11 @@ ListOrdersUseCase
 
 UpdateOrderStatusUseCase (admin status lifecycle)
 
+OrderQuery (read-only `spi`: read an order — used by `payment` and `shipment`)
+
+OrderLifecycle (`spi` command: "ensure at least" PAID/PROCESSING/DELIVERED transitions, walking the
+happy path — used by `payment` and `shipment` to advance the order without a dependency cycle)
+
 ---
 
 Published Events
@@ -597,6 +602,8 @@ inventory (spi: InventoryQuery pre-check + StockReservations reserve/release)
 
 # PAYMENT MODULE
 
+Status: Implemented (Phase 5)
+
 Package
 
 com.company.ecommerce.payment
@@ -629,11 +636,13 @@ payment_transactions
 
 Public APIs
 
-CreatePaymentUseCase
+CreatePaymentUseCase (process a charge through the pluggable PaymentGateway)
 
-VerifyPaymentUseCase
+GetPaymentUseCase (payment status, by id — owner-scoped or admin)
 
-RefundPaymentUseCase
+ListPaymentsUseCase (payment history, paginated, optional order filter)
+
+RefundPaymentUseCase (admin)
 
 ---
 
@@ -649,17 +658,23 @@ PaymentRefundedEvent
 
 Consumed Events
 
-OrderCreatedEvent
+OrderCreatedEvent (order) — creates a PENDING payment intent for the placed order
 
 ---
 
 Allowed Dependencies
 
-order
+order (spi: OrderQuery read + OrderLifecycle command — validate the payable amount and, on a
+successful charge, mark the order PAID after commit via an in-module @ApplicationModuleListener)
+
+> Note: payment does not consume payment/shipment events back into order. order never depends on
+> payment, so marking the order PAID is *pushed* through the order `spi` to keep the graph acyclic.
 
 ---
 
 # SHIPMENT MODULE
+
+Status: Implemented (Phase 5)
 
 Package
 
@@ -679,7 +694,8 @@ Aggregate Roots
 
 Shipment
 
-TrackingRecord
+(TrackingRecord is a child entity of the Shipment aggregate, not an aggregate root. DeliveryAddress is
+an embedded value object snapshotting the order's delivery address.)
 
 ---
 
@@ -693,11 +709,13 @@ tracking_records
 
 Public APIs
 
-CreateShipmentUseCase
+CreateShipmentUseCase (admin manual create + event-driven createForOrder; idempotent per order)
 
-TrackShipmentUseCase
+TrackShipmentUseCase (shipment + tracking history — owner-scoped or admin)
 
-MarkDeliveredUseCase
+UpdateShipmentStatusUseCase (admin status progression, appends tracking records)
+
+MarkDeliveredUseCase (admin confirm delivery)
 
 ---
 
@@ -711,13 +729,20 @@ ShipmentDeliveredEvent
 
 Consumed Events
 
-PaymentCompletedEvent
+PaymentCompletedEvent (payment) — auto-creates a shipment for the paid order
 
 ---
 
 Allowed Dependencies
 
-order
+order (spi: OrderQuery read — snapshot the delivery address + OrderLifecycle command — advance the
+order to PROCESSING on creation and DELIVERED on delivery, after commit via in-module
+@ApplicationModuleListeners)
+
+payment (events named interface — consumes PaymentCompletedEvent)
+
+> Note: shipment → order and shipment → payment; neither order nor payment depends back on shipment,
+> so the module graph stays acyclic. Order status is *pushed* forward through the order `spi`.
 
 ---
 

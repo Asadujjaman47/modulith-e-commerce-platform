@@ -13,6 +13,7 @@ codebase.
 | [PHASE2 — Catalog & Inventory](PHASE2-catalog-inventory.md) | `catalog`, `inventory` | brands, categories, products, search, stock reserve/release |
 | [PHASE3 — Cart & Coupon](PHASE3-cart-coupon.md) | `cart`, `coupon` | cart items, coupon create/validate/apply |
 | [PHASE4 — Order](PHASE4-order.md) | `order` | place/get/list/cancel orders, admin status lifecycle |
+| [PHASE5 — Payment & Shipment](PHASE5-payment-shipment.md) | `payment`, `shipment` | process/get/list payments, admin refund, shipment create/track/status/deliver |
 
 Run the guides **in order** within a phase — later steps reuse IDs and tokens captured by
 earlier ones.
