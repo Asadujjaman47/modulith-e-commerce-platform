@@ -519,6 +519,16 @@ cart, and `cart -> inventory`, so neither may depend back on order). Each side e
 read (payment, notification, audit, and review/reporting on `OrderCompletedEvent`) consume the order
 events directly.
 
+Implementation note (Phase 5): **payment** and **shipment** both depend on **order** (never the
+reverse). Payment consumes `OrderCreatedEvent` to create a PENDING intent; on a successful charge it
+publishes `PaymentCompletedEvent` and — via a post-commit in-module `@ApplicationModuleListener` —
+marks the order `PAID` through the new order `spi` (`OrderLifecycle`). Shipment consumes
+`PaymentCompletedEvent` to auto-create a shipment and likewise pushes the order to `PROCESSING`
+(on creation) and `DELIVERED` (on delivery) through the same `spi`. Order does **not** consume
+payment/shipment events (that would form a cycle), so all order-status advancement is pushed in
+through `OrderLifecycle`, whose transitions are idempotent "ensure at least" walks of the happy path —
+tolerant of the unordered async events that drive them.
+
 ---
 
 # 12. Transaction Boundaries

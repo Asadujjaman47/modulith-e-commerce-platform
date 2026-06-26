@@ -707,17 +707,74 @@ REFUNDED
 
 # 18. Payment APIs
 
-Create Payment
+All payment endpoints require authentication. When an order is placed a PENDING payment intent is
+created automatically (from `OrderCreatedEvent`); the customer then settles it via the process
+endpoint. There is exactly one payment per order.
+
+Process Payment
 
 POST /api/v1/payments
+
+Request
+
+{
+"orderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+"method": "CARD"
+}
+
+`method` is `CARD`, `PAYPAL` or `BANK_TRANSFER`. Send an optional `Idempotency-Key` header to make
+retries safe; paying an already-paid order returns the original payment. On success the payment moves
+to `SUCCESS`, `PaymentCompletedEvent` is published, and the order is marked `PAID`. A declined charge
+records a `FAILED` payment (it can be retried). Unknown/other-customer order → 404; a cancelled or
+zero-amount order → 409.
+
+Response
+
+201 Created
+
+{
+"success": true,
+"message": "Payment processed",
+"data": {
+"id": "...",
+"orderId": "...",
+"status": "SUCCESS",
+"method": "CARD",
+"amount": 2398.00,
+"currency": "USD",
+"gatewayReference": "SIM-CHG-…",
+"paidAt": "2026-06-26T10:20:00Z",
+"transactions": [ { "type": "CHARGE", "succeeded": true, "amount": 2398.00, "message": "Charge approved" } ]
+}
+}
 
 Get Payment
 
 GET /api/v1/payments/{paymentId}
 
+Returns the payment if it belongs to the caller, otherwise 404.
+
+List Payments (history)
+
+GET /api/v1/payments
+
+Paginated (`page`, `size`, `sort`), with an optional `orderId` filter. Returns the standard
+`PageResponse` of payment summaries.
+
+---
+
+Admin Payment APIs (require ROLE_ADMIN)
+
+Get Any Payment
+
+GET /api/v1/admin/payments/{paymentId}
+
 Refund Payment
 
-POST /api/v1/payments/{paymentId}/refund
+POST /api/v1/admin/payments/{paymentId}/refund
+
+Refunds a successful payment (→ `REFUNDED`, publishes `PaymentRefundedEvent`). Idempotent: refunding
+an already-refunded payment returns it unchanged; a non-successful payment → 409.
 
 ---
 
@@ -735,17 +792,62 @@ REFUNDED
 
 # 19. Shipment APIs
 
-Create Shipment
-
-POST /api/v1/admin/shipments
+A shipment is created automatically when an order is paid (`PaymentCompletedEvent`), snapshotting the
+order's delivery address. There is one shipment per order. Customers track their own shipment; admins
+create/advance shipments.
 
 Track Shipment
 
 GET /api/v1/shipments/{shipmentId}
 
+Returns the shipment and its full tracking history if it belongs to the caller, otherwise 404.
+
+---
+
+Admin Shipment APIs (require ROLE_ADMIN)
+
+Create Shipment
+
+POST /api/v1/admin/shipments
+
+Request
+
+{
+"orderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+"carrier": "DHL"
+}
+
+Creates a shipment for a paid order and assigns the carrier. Idempotent: if the order already has a
+shipment (e.g. the one auto-created on payment), that shipment is returned. An unpaid order → 409;
+unknown order → 404.
+
+Get Any Shipment
+
+GET /api/v1/admin/shipments/{shipmentId}
+
+Update Shipment Status
+
+PUT /api/v1/admin/shipments/{shipmentId}/status
+
+Request
+
+{
+"status": "IN_TRANSIT",
+"location": "Frankfurt hub",
+"note": "Departed sorting facility"
+}
+
+Advances the shipment to the next status (guarded: CREATED → PICKED_UP → IN_TRANSIT →
+OUT_FOR_DELIVERY → DELIVERED), appending a tracking record. An illegal transition → 409. Reaching
+SHIPPED/DELIVERED advances the order accordingly. Setting `DELIVERED` is equivalent to the deliver
+endpoint below.
+
 Mark Delivered
 
 POST /api/v1/admin/shipments/{shipmentId}/deliver
+
+Confirms delivery (→ `DELIVERED`, publishes `ShipmentDeliveredEvent`, completes the order). Already
+delivered → 409.
 
 ---
 
