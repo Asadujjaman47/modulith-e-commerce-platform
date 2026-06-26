@@ -14,7 +14,7 @@ Database: PostgreSQL
 
 Deployment: Docker
 
-Status: Phase 0–3 complete (Foundation, Auth & User, Catalog & Inventory, Cart & Coupon) — Phase 4 (Order) next
+Status: Phase 0–4 complete (Foundation, Auth & User, Catalog & Inventory, Cart & Coupon, Order) — Phase 5 (Payment & Shipment) next
 
 ---
 
@@ -411,6 +411,13 @@ Discount calculation works
 # PHASE 4
 
 # Order Management
+
+Status: Complete — place order from the cart (optional coupon, `Idempotency-Key`), cancel, order
+history/details, and an admin status lifecycle (guarded transitions). Stock reservation/release,
+cart clearing and coupon-usage recording run as post-commit side effects; the order module
+orchestrates cart/coupon/inventory via their `spi` to keep the module graph acyclic. Flyway
+`V8__order.sql`. 148 tests passing; verified from terminal and Docker. (Pending PR/merge and the
+`v0.5.0` release tag.)
 
 Goal
 

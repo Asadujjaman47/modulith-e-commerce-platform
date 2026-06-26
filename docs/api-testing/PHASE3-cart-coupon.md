@@ -103,8 +103,9 @@ curl -s -X DELETE $BASE/api/v1/cart/items/$ITEM_ID \
 # items: [], subtotal: 0
 ```
 
-> Checkout (`POST /api/v1/cart/checkout`) is intentionally **not** implemented yet — it's delivered
-> with the order module in Phase 4.
+> There is no `POST /api/v1/cart/checkout` endpoint. In Phase 4 the **order** module reads the cart
+> directly at checkout (`POST /api/v1/orders`) and clears it once the order is placed — see
+> [Phase 4](PHASE4-order.md).
 
 ---
 
@@ -223,5 +224,5 @@ Same `404`/`409` rules as validate. Once usage hits the `usageLimit`, further ap
 | POST | `/api/v1/coupons/validate` | bearer | no usage recorded; 404/409 |
 | POST | `/api/v1/coupons/apply` | bearer | records usage + event; 404/409 |
 
-That's everything implemented through Phase 3. Phase 4 (order) will wire cart checkout and coupon
-application into the order lifecycle.
+That's everything implemented through Phase 3. [Phase 4 (order)](PHASE4-order.md) wires the cart and
+coupon into the order lifecycle.

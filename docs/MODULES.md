@@ -176,6 +176,8 @@ UpdateCustomerUseCase
 
 GetCustomerUseCase
 
+UserQuery (read-only `spi`: resolve a customer's address for other modules — used by `order`)
+
 ---
 
 Published Events
@@ -334,7 +336,9 @@ UpdateStockUseCase
 
 GetStockUseCase
 
-InventoryQuery (read-only `spi` named interface: available-quantity lookup for other modules)
+InventoryQuery (read-only `spi`: available-quantity lookup for other modules)
+
+StockReservations (`spi` command: reserve / release-by-reference — used by `order`)
 
 ---
 
@@ -352,9 +356,8 @@ Consumed Events
 
 ProductCreatedEvent (catalog) — seeds a zero-stock inventory record
 
-OrderCreatedEvent (deferred until the order module exists)
-
-OrderCancelledEvent (deferred until the order module exists)
+(`order` reserves/releases stock by calling the StockReservations `spi`; inventory does not consume
+order events — that would form a cycle via `cart -> inventory`.)
 
 ---
 
@@ -407,13 +410,15 @@ UpdateCartItemUseCase
 
 RemoveCartItemUseCase
 
-CheckoutCartUseCase (deferred to the order phase)
+CartQuery (read-only `spi`: read the cart at checkout — used by `order`)
+
+CartMaintenance (`spi` command: clear the cart — used by `order` after an order is placed)
 
 ---
 
 Published Events
 
-CartCheckedOutEvent (deferred to the order phase)
+None (cart clearing at checkout is driven by `order` via the CartMaintenance `spi`)
 
 ---
 
@@ -475,6 +480,10 @@ ValidateCouponUseCase
 
 ApplyCouponUseCase
 
+CouponQuery (read-only `spi`: quote a discount — used by `order` at checkout)
+
+CouponRedemption (`spi` command: record usage linked to a placed order — used by `order`)
+
 ---
 
 Published Events
@@ -487,17 +496,20 @@ CouponExpiredEvent (published on lazy expiry during validate/apply)
 
 Consumed Events
 
-OrderCreatedEvent (deferred until the order module exists)
+None. `order` records per-order usage by calling the CouponRedemption `spi` (coupon does not depend
+on order — that would form a cycle).
 
 ---
 
 Allowed Dependencies
 
-None (validation/apply operate on an order amount supplied by the caller)
+None (validation/apply/quote operate on an order amount supplied by the caller)
 
 ---
 
 # ORDER MODULE
+
+Status: Implemented (Phase 4)
 
 Package
 
@@ -518,9 +530,7 @@ Aggregate Roots
 
 Order
 
-OrderItem
-
-OrderAddress
+(OrderItem and OrderAddress are child entities of the Order aggregate, not aggregate roots.)
 
 ---
 
@@ -544,6 +554,8 @@ GetOrderUseCase
 
 ListOrdersUseCase
 
+UpdateOrderStatusUseCase (admin status lifecycle)
+
 ---
 
 Published Events
@@ -552,25 +564,34 @@ OrderCreatedEvent
 
 OrderCancelledEvent
 
-OrderCompletedEvent
+OrderCompletedEvent (published on delivery)
 
 ---
 
 Consumed Events
 
-CartCheckedOutEvent
+None from other modules. Order is the orchestrator: it reads cart/user/coupon and pre-checks
+inventory via their `spi` named interfaces, then drives the downstream side effects (reserve/release
+stock, clear cart, record coupon usage) via those modules' `spi` commands. To keep these out of the
+placing transaction, order consumes its own `OrderCreatedEvent`/`OrderCancelledEvent` on in-module
+`@ApplicationModuleListener`s so each side effect runs after commit, in its own transaction.
 
-CouponAppliedEvent
+> Note: the earlier design had order consume `CartCheckedOutEvent`/`CouponAppliedEvent` and have
+> inventory/coupon consume `OrderCreatedEvent`. That forms a dependency cycle (order reads cart, and
+> `cart -> inventory`, so neither inventory nor cart/coupon may depend back on order). The
+> orchestration model above replaces it and keeps the module graph acyclic.
 
 ---
 
 Allowed Dependencies
 
-cart
+cart (spi: CartQuery read + CartMaintenance command)
 
-coupon
+coupon (spi: CouponQuery quote + CouponRedemption command)
 
-user
+user (spi: UserQuery — resolve the shipping address)
+
+inventory (spi: InventoryQuery pre-check + StockReservations reserve/release)
 
 ---
 
@@ -984,13 +1005,14 @@ order module
 
 Consumers:
 
-inventory
-
 payment
 
 notification
 
 audit
+
+(Inventory is *not* an event consumer here — order reserves/releases stock through the inventory
+`spi` to keep the module graph acyclic. See the ORDER module note.)
 
 Consumers must never modify the Order aggregate.
 

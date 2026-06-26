@@ -14,11 +14,13 @@ For hands-on, copy-pasteable curl walkthroughs to run and test each phase's APIs
 **Implemented so far:** Phase 0 (foundation), Phase 1 (`auth` + `user`) — registration, login,
 JWT refresh with rotation, logout, customer profile and address management — Phase 2
 (`catalog` + `inventory`) — products, categories, brands with paginated/sortable search, plus
-stock tracking with reservation and release — and Phase 3 (`cart` + `coupon`) — a per-customer
-cart with live stock checks and price snapshots, plus coupon create/validate/apply. Endpoints
-under `/api/v1/auth/*`, `/api/v1/users/*`, `/api/v1/products|categories|brands*`,
-`/api/v1/cart*`, `/api/v1/coupons/*`, and `/api/v1/admin/*` (browse them in Swagger UI). Phase 4
-(order) is next.
+stock tracking with reservation and release — Phase 3 (`cart` + `coupon`) — a per-customer
+cart with live stock checks and price snapshots, plus coupon create/validate/apply — and Phase 4
+(`order`) — place an order from the cart (optional coupon, idempotent), cancel it, order
+history/details, and an admin status lifecycle, with stock reservation/release, cart clearing and
+coupon-usage recording driven as post-commit side effects. Endpoints under `/api/v1/auth/*`,
+`/api/v1/users/*`, `/api/v1/products|categories|brands*`, `/api/v1/cart*`, `/api/v1/coupons/*`,
+`/api/v1/orders*`, and `/api/v1/admin/*` (browse them in Swagger UI). Phase 5 (payment) is next.
 
 ## Prerequisites
 

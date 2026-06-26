@@ -79,6 +79,11 @@ public class Cart extends AuditableEntity {
         items.remove(item);
     }
 
+    /** Empties the cart (e.g. once its contents have been turned into an order). */
+    public void clear() {
+        items.clear();
+    }
+
     /** Refreshes the price/name snapshot of any line referencing the given product. */
     public void refreshProduct(UUID productId, String productName, BigDecimal unitPrice) {
         findItemByProduct(productId)

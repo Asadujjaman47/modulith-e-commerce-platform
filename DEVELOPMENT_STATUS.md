@@ -1,6 +1,6 @@
 # Current Milestone
 
-Phase 4 — Order (next)
+Phase 5 — Payment (next)
 
 ## Completed
 
@@ -93,7 +93,8 @@ Phase 4 — Order (next)
   - APIs: `POST /api/v1/admin/coupons` (`ROLE_ADMIN`), `POST /api/v1/coupons/validate`,
     `POST /api/v1/coupons/apply`
   - Events published (named interface): `CouponAppliedEvent`, `CouponExpiredEvent` (lazy expiry on
-    validate/apply); `OrderCreatedEvent` consumer deferred until the order module exists
+    validate/apply); per-order usage recording deferred to the order phase (delivered in Phase 4 via
+    the `coupon.spi.CouponRedemption` command — coupon does not consume `OrderCreatedEvent`)
   - MapStruct mapper (`CouponMapper`)
 - `catalog` / `inventory`: added read-only `spi` named interfaces (`CatalogQuery` + `ProductView`,
   `InventoryQuery`) so `cart` can read product/stock data without crossing module internals
@@ -102,7 +103,44 @@ Phase 4 — Order (next)
   integration test (create/stock product → add to cart with price snapshot → update qty →
   over-stock 409 → remove; admin creates coupon → validate → apply; non-admin 403),
   Modulith verification
-- Note: cart checkout (`CheckoutCartUseCase` / `CartCheckedOutEvent`) is deferred to the order phase
+- Note: cart checkout was deferred to the order phase. Delivered in Phase 4 **without** a
+  `CheckoutCartUseCase` / `CartCheckedOutEvent` — the order module reads the cart via `cart.spi`
+  (`CartQuery`) at checkout and clears it via `cart.spi.CartMaintenance` (avoids a module cycle)
+
+### Phase 4 — Order
+
+- `order` module
+  - Aggregates: `Order` (orders) with `OrderItem` (order_items) and `OrderAddress` (order_addresses)
+    children; `OrderStatus` state machine (`PENDING`→`PAID`/`PROCESSING`→`SHIPPED`→`DELIVERED`, plus
+    `CANCELLED`/`REFUNDED`)
+  - Use cases: place order (from a cart snapshot, optional coupon, `Idempotency-Key` dedupe),
+    cancel order, get order, list orders (history), admin update-status
+  - Customer API: `POST /api/v1/orders`, `GET /api/v1/orders` (paginated, `?status=`),
+    `GET /api/v1/orders/{id}`, `POST /api/v1/orders/{id}/cancel` (own orders only)
+  - Admin API (`ROLE_ADMIN`): `GET /api/v1/admin/orders`, `GET /api/v1/admin/orders/{id}`,
+    `PUT /api/v1/admin/orders/{id}/status` (guarded transitions)
+  - MapStruct mapper (`OrderMapper`); each line snapshots product name + unit price; the shipping
+    address is snapshotted from the user module
+  - Events published (named interface): `OrderCreatedEvent`, `OrderCancelledEvent`,
+    `OrderCompletedEvent` (on delivery)
+  - **Orchestration model (acyclic boundaries):** order reads cart/user/coupon and pre-checks
+    inventory via their `spi` named interfaces, then orchestrates the modules it depends on via new
+    `spi` commands. Because `cart -> inventory` already exists, no module that order (transitively)
+    reads may depend back on order; so side effects are driven by order's own
+    `@ApplicationModuleListener`s (post-commit, each in its own transaction):
+    reserve/release stock (`inventory.spi.StockReservations`), clear the cart
+    (`cart.spi.CartMaintenance`), record coupon usage linked to the order (`coupon.spi.CouponRedemption`)
+  - New cross-module `spi`: `cart` (`CartQuery`/`CartView` + `CartMaintenance`), `user`
+    (`UserQuery`/`AddressView`, resolving the customer from the auth user id), `coupon`
+    (`CouponQuery`/`CouponQuote` read + `CouponRedemption` command), `inventory`
+    (`StockReservations` reserve/release-by-reference)
+- Flyway: `V8__order.sql` (orders, order_items, order_addresses; unique `(customer_id,
+  idempotency_key)`)
+- Tests: 148 passing — `Order` domain (totals, state machine), use-case unit tests (Mockito),
+  `spi` service + order fulfilment-handler unit tests, and a full Testcontainers integration test
+  (register → address → stock product → cart → place order → async cart-clear/stock-reserve →
+  details/history → ownership 404 → cancel → async stock-release → coupon order → admin status
+  lifecycle → non-admin 403 → idempotent replay), Modulith verification
 
 ## In Progress
 
@@ -110,9 +148,9 @@ None
 
 ## Next
 
-- Phase 4: Order (`order` module) — order lifecycle; will consume `CartCheckedOutEvent` and
-  `CouponAppliedEvent`
+- Phase 5: Payment (`payment` module) — consumes `OrderCreatedEvent`; publishes
+  `PaymentCompletedEvent`
 
 ## Current Branch
 
-feature/cart-coupon
+feature/order-management
