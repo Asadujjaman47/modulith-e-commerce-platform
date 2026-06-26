@@ -33,6 +33,19 @@ spring:
         max-page-size: 100
         one-indexed-parameters: false
 
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    # Mailpit (dev/docker) accepts unauthenticated SMTP; real SMTP credentials come from env.
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+
 app:
   jwt:
     # HMAC-SHA256 signing secret (base64-encoded, >= 256 bits / 32 bytes).
@@ -43,6 +56,10 @@ app:
     issuer: ecommerce
     access-token-ttl: ${JWT_ACCESS_TTL:PT15M}
     refresh-token-ttl: ${JWT_REFRESH_TTL:P7D}
+
+  notification:
+    # Sender address used for outbound emails (notification module).
+    from-address: ${NOTIFICATION_FROM:no-reply@ecommerce.local}
 
 springdoc:
   api-docs:

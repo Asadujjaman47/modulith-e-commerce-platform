@@ -867,17 +867,58 @@ DELIVERED
 
 # 20. Review APIs
 
+Authenticated customer endpoints. Creating a review requires the customer to have completed at least one
+order (delivered), and a customer may review a given product only once.
+
 Create Review
 
 POST /api/v1/products/{productId}/reviews
 
-List Reviews
+```
+{
+  "rating": 5,
+  "title": "Excellent",
+  "comment": "Works great"
+}
+```
+
+`rating` is required (1–5); `title` (≤150) and `comment` (≤2000) are optional. Returns the created
+review (with the snapshotted author display name). 404 if the product does not exist; 409 if the
+product is inactive, the customer is not purchase-eligible, or has already reviewed the product.
+
+List Reviews (paginated)
 
 GET /api/v1/products/{productId}/reviews
 
-Delete Review
+Returns published reviews in the standard `PageResponse` envelope (`?page=&size=&sort=`).
+
+Product Rating Summary
+
+GET /api/v1/products/{productId}/reviews/summary
+
+Returns the aggregate `{ productId, averageRating, reviewCount }` (zeros if there are no reviews yet).
+
+Delete Review (owner)
 
 DELETE /api/v1/reviews/{reviewId}
+
+Deletes the caller's own review; 404 if it does not exist or is not theirs.
+
+Moderate Review (admin)
+
+PUT /api/v1/admin/reviews/{reviewId}/status  (ROLE_ADMIN)
+
+```
+{ "status": "HIDDEN" }
+```
+
+Hide a published review or restore (`PUBLISHED`) a hidden one; the product's aggregate rating is kept in
+sync. 403 for non-admins; 404 if the review does not exist.
+
+---
+
+Note: the `notification` module exposes no HTTP API — it is event-driven, sending emails in response to
+registration, order, payment and shipment events.
 
 ---
 

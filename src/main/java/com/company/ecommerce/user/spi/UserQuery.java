@@ -14,4 +14,10 @@ public interface UserQuery {
      * (the auth principal), or empty otherwise (no such customer, unknown address, or not theirs).
      */
     Optional<AddressView> findAddress(UUID userId, UUID addressId);
+
+    /**
+     * Returns a read-only view of the customer identified by their {@code userId} (the auth
+     * principal), or empty if no such customer exists.
+     */
+    Optional<CustomerView> findCustomer(UUID userId);
 }
