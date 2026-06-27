@@ -1,0 +1,81 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "tags": ["ecommerce", "business"],
+  "title": "E-Commerce — Business KPIs",
+  "uid": "ecommerce-business",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "title": "Orders Placed (total)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(ecommerce_orders_placed_orders_total{application=\"ecommerce\"})", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Payments Succeeded (total)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        { "expr": "sum(ecommerce_payments_completed_payments_total{application=\"ecommerce\"})", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Payments Failed (total)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(ecommerce_payments_failed_payments_total{application=\"ecommerce\"})", "refId": "A" }
+      ]
+    },
+    {
+      "title": "New Users (total)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        { "expr": "sum(ecommerce_users_registered_users_total{application=\"ecommerce\"})", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Orders Placed Rate (per min)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(rate(ecommerce_orders_placed_orders_total{application=\"ecommerce\"}[5m])) * 60", "legendFormat": "orders/min", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Payment Success vs Failure Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(rate(ecommerce_payments_completed_payments_total{application=\"ecommerce\"}[5m])) * 60", "legendFormat": "succeeded/min", "refId": "A" },
+        { "expr": "sum(rate(ecommerce_payments_failed_payments_total{application=\"ecommerce\"}[5m])) * 60", "legendFormat": "failed/min", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Shipments Delivered & Reviews Created (per min)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(rate(ecommerce_shipments_delivered_shipments_total{application=\"ecommerce\"}[5m])) * 60", "legendFormat": "shipments delivered/min", "refId": "A" },
+        { "expr": "sum(rate(ecommerce_reviews_created_reviews_total{application=\"ecommerce\"}[5m])) * 60", "legendFormat": "reviews created/min", "refId": "B" }
+      ]
+    }
+  ]
+}

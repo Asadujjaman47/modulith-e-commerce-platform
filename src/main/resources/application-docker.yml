@@ -13,3 +13,16 @@ spring:
   mail:
     host: ${MAIL_HOST:mailpit}
     port: ${MAIL_PORT:1025}
+
+# Inside the container, ship spans to the zipkin compose service.
+management:
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
+
+# Emit structured JSON logs (ECS layout) to stdout for log aggregation; traceId/spanId from the
+# MDC are included automatically, satisfying the deployment logging contract.
+logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}

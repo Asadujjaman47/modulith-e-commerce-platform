@@ -1,6 +1,6 @@
 # Current Milestone
 
-Phase 7 — Reporting & Audit (in review)
+Phase 8 — Observability (in review)
 
 ## Completed
 
@@ -258,15 +258,49 @@ Phase 7 — Reporting & Audit (in review)
   search use-case unit tests; full Testcontainers integration tests for both (publish real events →
   assert projections/trail via the admin APIs; admin-only 403), Modulith verification
 
+### Phase 8 — Observability
+
+- Cross-cutting observability wired into the `config` module (OPEN, no new business module) on the
+  standard Spring Boot stack: **Micrometer → Prometheus → Grafana**, plus **Micrometer Tracing
+  (Brave) → Zipkin**. No Flyway migration (observability adds no schema)
+- **Metrics** (`config.observability`)
+  - `MetricsConfig`: common tags on every meter (`application`, `environment` = active profile) and
+    an HTTP URI cardinality cap (100) to protect Prometheus
+  - HTTP server request **histograms + p50/p95/p99 + SLO buckets** via
+    `management.metrics.distribution.*`
+  - Custom **business counters** (`BusinessMetrics`) fed by `BusinessMetricsEventHandlers` —
+    post-commit `@ApplicationModuleListener`s consuming the `events` named interfaces (same channel
+    as `audit`/`reporting`, so no business module depends on Micrometer): orders placed, payments
+    completed/failed, shipments delivered, reviews created, users registered (pre-registered at
+    startup so the series exist before the first event)
+- **Health** — readiness probe group (`readinessState` + `db` + `redis`), liveness/readiness
+  endpoints, `/actuator/info` populated via the Maven `build-info` goal (+ Java/OS), and a custom
+  `MetricsHealthIndicator` (reports the live meter registry/count)
+- **Prometheus** (`monitoring/`) — `external_labels`, a self-scrape job, and **alert rules**
+  (`alerts.yml`: app-down, high 5xx rate, high p95 latency, JVM heap pressure, DB pool exhaustion)
+- **Grafana** — datasource + dashboards **auto-provisioned** (`monitoring/grafana/provisioning`):
+  JVM/System, HTTP & Resources (incl. HikariCP + Redis), and Business KPIs dashboards
+- **Tracing & logs** — `micrometer-tracing-bridge-brave` + `zipkin-reporter-brave`; `traceId`/`spanId`
+  in the MDC (console correlation pattern locally, **ECS JSON** structured logs on the docker
+  profile); sampling + Zipkin endpoint env-overridable, spans dropped (never blocking) if Zipkin is
+  unreachable
+- **Compose** — `zipkin` service added; Grafana provisioning + Prometheus alerts mounted; app gains
+  `ZIPKIN_ENDPOINT` / `TRACING_SAMPLE_RATE` env
+- Docs: new `docs/OBSERVABILITY.md` (endpoints, metrics catalog, dashboards, alerts, tracing)
+- Tests: `BusinessMetricsEventHandlers` unit test (real `SimpleMeterRegistry`) + an observability
+  Testcontainers integration test (`/actuator/health` + readiness `UP`; `/actuator/prometheus`
+  exposes the custom counters with the common tag after a published `OrderCreatedEvent`), Modulith
+  verification stays green
+
 ## In Progress
 
-Phase 7 — Reporting & Audit (PR pending)
+Phase 8 — Observability (PR pending)
 
 ## Next
 
-- Platform hardening / cross-cutting concerns (e.g. observability, security review) — no further
-  business modules remain in the catalog
+- Phase 9 — Production Readiness (profiles dev/staging/prod, Redis persistence, secrets, security
+  review). No further business modules remain in the catalog
 
 ## Current Branch
 
-feature/reporting-audit
+feature/observability

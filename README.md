@@ -4,7 +4,7 @@ A production-grade e-commerce platform built as a **Modular Monolith** with **Sp
 
 - **Java** 21 · **Spring Boot** 3.5.x · **Spring Modulith** 1.4.x · **Maven**
 - **PostgreSQL** 17 (Flyway migrations) · **Redis** (cache) · **Spring Security** (JWT, from Phase 1)
-- **OpenAPI/Swagger** · **Actuator + Prometheus + Grafana** · **Docker / Docker Compose**
+- **OpenAPI/Swagger** · **Actuator + Micrometer + Prometheus + Grafana + Zipkin (tracing)** · **Docker / Docker Compose**
 
 See [`docs/`](docs) for the full design (`ARCHITECTURE.md`, `MODULES.md`, `API_GUIDE.md`,
 `ROADMAP.md`, `DEPLOYMENT.md`, ADRs). Current status: see [`DEVELOPMENT_STATUS.md`](DEVELOPMENT_STATUS.md).
@@ -55,7 +55,7 @@ profile works as-is. Configuration can be overridden with the `DB_*` / `REDIS_*`
 
 ```bash
 cp .env.example .env          # adjust values if needed
-docker compose up -d --build  # app + postgres + redis + mailpit + prometheus + grafana
+docker compose up -d --build  # app + postgres + redis + mailpit + prometheus + grafana + zipkin
 ```
 
 | Service           | URL                                      |
@@ -65,7 +65,12 @@ docker compose up -d --build  # app + postgres + redis + mailpit + prometheus + 
 | OpenAPI JSON      | http://localhost:8080/v3/api-docs        |
 | Prometheus        | http://localhost:9090                    |
 | Grafana           | http://localhost:3000 (admin/admin)      |
+| Zipkin (tracing)  | http://localhost:9411                    |
 | Mailpit (mail UI) | http://localhost:8025                    |
+
+Grafana ships with auto-provisioned dashboards (JVM/System, HTTP & Resources, Business KPIs) and a
+Prometheus datasource. See [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) (reference) and
+[`docs/OBSERVABILITY_RUNBOOK.md`](docs/OBSERVABILITY_RUNBOOK.md) (alert response / incident triage).
 
 Stop with `docker compose down` (add `-v` to also drop volumes).
 
@@ -101,7 +106,7 @@ Runs unit tests, the Spring Modulith boundary verification, and the Testcontaine
 com.company.ecommerce
 ├── EcommerceApplication        # @Modulithic entry point
 ├── common                      # shared: AuditableEntity, ApiResponse/ErrorResponse, exceptions
-├── config                      # security, redis, openapi, jpa auditing
+├── config                      # redis, openapi, jpa auditing, observability (metrics/tracing/health)
 └── auth, user, catalog, ...    # business modules (api / application / domain / infrastructure)
 ```
 

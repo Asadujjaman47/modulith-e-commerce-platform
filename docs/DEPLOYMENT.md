@@ -63,6 +63,10 @@ Grafana
 
 ↓
 
+Zipkin (Tracing)
+
+↓
+
 Mailpit (Non-Production)
 
 ---
@@ -503,6 +507,13 @@ Monitor
 
 Actuator + Micrometer + Prometheus + Grafana is a widely used Spring Boot observability stack.
 
+Implemented in Phase 8. The Grafana datasource and dashboards (JVM/System, HTTP & Resources,
+Business KPIs) are auto-provisioned from `monitoring/grafana/provisioning`, and Prometheus loads
+alert rules from `monitoring/alerts.yml`. Custom business counters (orders, payments, shipments,
+reviews, registrations) are emitted alongside the technical metrics. Distributed tracing
+(Micrometer Tracing → Brave → Zipkin) and trace-correlated JSON logs are wired in the same phase.
+See `docs/OBSERVABILITY.md`.
+
 ---
 
 # 18. Logging Strategy
@@ -544,6 +555,11 @@ JWT Tokens
 Credit Card Data
 
 Secrets
+
+Implemented in Phase 8: the `docker` profile emits structured **ECS JSON** logs to stdout
+(`logging.structured.format.console`), with `traceId`/`spanId` injected into the MDC by Micrometer
+Tracing for trace ↔ log correlation. Local runs keep readable console output with a correlation
+suffix.
 
 ---
 

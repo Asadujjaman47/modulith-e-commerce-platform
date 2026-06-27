@@ -72,18 +72,62 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        # metrics is the JSON browse endpoint; prometheus is the scrape endpoint.
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when_authorized
       probes:
+        # Exposes /actuator/health/liveness and /actuator/health/readiness (k8s-style probes).
         enabled: true
+      group:
+        readiness:
+          # The app is only ready to serve traffic once Postgres and Redis are reachable.
+          include: readinessState,db,redis
   health:
     redis:
       enabled: true
     db:
       enabled: true
+    # Mail delivery is best-effort (notification failures are swallowed by design), so an
+    # unreachable SMTP server must not drag the application's health to DOWN.
+    mail:
+      enabled: false
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+  metrics:
+    distribution:
+      # Publish histogram buckets (enables Prometheus heatmaps + accurate quantiles in Grafana)
+      # and client-side percentiles for HTTP server request latency.
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 400ms, 1s
+  tracing:
+    sampling:
+      # Sample every request in non-prod so traces are always available; tune down per-environment.
+      probability: ${TRACING_SAMPLE_RATE:1.0}
+  zipkin:
+    tracing:
+      # Where Brave ships spans. Unset/unreachable -> spans are simply dropped (no startup failure).
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: E-Commerce Platform (Spring Modulith)
 
 logging:
   level:
     com.company.ecommerce: INFO
+  pattern:
+    # Correlate plain-text console logs with traces (traceId/spanId injected by Micrometer Tracing).
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
+  include-application-name: false
