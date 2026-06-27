@@ -1,6 +1,6 @@
 # Current Milestone
 
-Phase 8 — Observability (in review)
+Phase 9 — Production Readiness (in review)
 
 ## Completed
 
@@ -292,15 +292,48 @@ Phase 8 — Observability (in review)
   exposes the custom counters with the common tag after a published `OrderCreatedEvent`), Modulith
   verification stays green
 
+### Phase 9 — Production Readiness
+
+Cross-cutting hardening only (no new business module, no business-schema changes). Lands in `config`,
+`common`, and minimal in-boundary touches to `auth`/`catalog`.
+
+- **Exception handling** (`common`) — added handlers for missing request params, unsupported media
+  type, max upload size, unknown routes (404), and `DataIntegrityViolationException` (→409);
+  `BadCredentialsException` now preserves its message (login vs. refresh) instead of a generic label;
+  unexpected 5xx responses carry the Micrometer `traceId` (new null-suppressed `ErrorResponse.traceId`)
+  for log correlation
+- **Security** (`auth.SecurityConfig`) — security response headers (`X-Content-Type-Options`,
+  `X-Frame-Options=DENY`, `Referrer-Policy`, HSTS); CORS bound from `app.cors.*` (`CorsProperties`)
+  on `/api/**`; **actuator lockdown** — only `health`/`info` public, `prometheus`/`metrics`/`modulith`
+  require `ROLE_ADMIN`; new **`prod` profile** (fail-fast on missing `JWT_SECRET`, Swagger disabled,
+  SQL/health detail suppressed). New `docs/SECURITY.md`
+- **Cache** (`config.CacheConfig`, `catalog`) — Redis-backed Spring Cache finally wired
+  (`@EnableCaching` + `RedisCacheManager`, per-cache TTLs, JSON values, key prefix): catalog
+  product-by-id (evict on update/delete), category list and brand list (evict on any write).
+  `LoggingCacheErrorHandler` degrades Redis failures to a DB read; Lettuce connection pool
+  (`commons-pool2`) + command/connect timeouts. Coupon-by-code deliberately not cached (lazy-expiry
+  side effects); cart stays in Postgres
+- **Rate limiting** (`config.ratelimit`) — Bucket4j token buckets over Redis (shared across instances,
+  in-memory fallback if Redis down): strict per-IP limit on `/api/v1/auth/**`, looser per-principal
+  limit elsewhere; HTTP 429 + `Retry-After` + standard envelope; fails open on backend errors;
+  toggle/limits via `app.rate-limit.*`. New ADR-018 + `docs/RATE_LIMITING.md`
+- **Performance** — HikariCP pool sizing/timeouts; Hibernate JDBC batching (insert/update ordering);
+  `default_batch_fetch_size` collapses N+1 LAZY collection loads (product images, order items, payment
+  transactions) into `IN (...)` queries without breaking pagination
+- Tests: new exception-handler unit tests, security-hardening + cache + rate-limit Testcontainers
+  integration tests; full suite green (281 tests), Modulith verification stays green
+- Docs: `ARCHITECTURE.md` (§15 Security, §17 Redis), `DECISIONS.md` (ADR-018), `ADR-006` updated, new
+  `SECURITY.md` / `RATE_LIMITING.md`
+
 ## In Progress
 
-Phase 8 — Observability (PR pending)
+Phase 9 — Production Readiness (PR pending)
 
 ## Next
 
-- Phase 9 — Production Readiness (profiles dev/staging/prod, Redis persistence, secrets, security
-  review). No further business modules remain in the catalog
+- No further phases planned. Future candidates are tracked as ADR candidates in `docs/DECISIONS.md`
+  (e.g. Elasticsearch, Outbox, Object Storage, Kafka)
 
 ## Current Branch
 
-feature/observability
+feature/production-readiness
