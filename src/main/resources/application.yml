@@ -61,6 +61,12 @@ app:
     # Sender address used for outbound emails (notification module).
     from-address: ${NOTIFICATION_FROM:no-reply@ecommerce.local}
 
+  cors:
+    # Comma-separated front-end origins permitted to call /api/**. Override per environment;
+    # exact origins only (no wildcard) because credentialed requests are allowed.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+
 springdoc:
   api-docs:
     path: /v3/api-docs
