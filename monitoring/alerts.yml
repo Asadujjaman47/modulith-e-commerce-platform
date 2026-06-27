@@ -1,0 +1,57 @@
+groups:
+  - name: ecommerce-app
+    rules:
+      # The application stopped responding to scrapes.
+      - alert: ApplicationDown
+        expr: up{job="ecommerce-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "E-commerce app is down"
+          description: "Prometheus has not been able to scrape {{ $labels.instance }} for over 1 minute."
+
+      # Sustained server-side error rate above 5% of total requests.
+      - alert: HighHttpErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            / sum(rate(http_server_requests_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP 5xx error rate"
+          description: "More than 5% of HTTP requests have failed with 5xx over the last 5 minutes."
+
+      # 95th percentile request latency above 1s.
+      - alert: HighRequestLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 request latency"
+          description: "95th percentile HTTP request latency has exceeded 1s for 5 minutes."
+
+      # JVM heap close to the configured maximum.
+      - alert: JvmHeapPressure
+        expr: |
+          sum by (instance) (jvm_memory_used_bytes{area="heap"})
+            / sum by (instance) (jvm_memory_max_bytes{area="heap"}) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM heap usage above 90%"
+          description: "Heap utilisation on {{ $labels.instance }} has exceeded 90% for 5 minutes."
+
+      # HikariCP connection pool is saturated (all connections in use, threads waiting).
+      - alert: DbConnectionPoolExhausted
+        expr: hikaricp_connections_pending > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool saturated"
+          description: "Threads have been waiting for a DB connection for over 2 minutes ({{ $labels.instance }})."

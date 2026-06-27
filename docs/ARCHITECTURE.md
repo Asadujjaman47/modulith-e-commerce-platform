@@ -772,6 +772,13 @@ Metrics
 * Database Connections
 * Redis Connections
 
+Implemented in Phase 8. Distributed tracing (Micrometer Tracing → Brave → Zipkin) and custom
+business metrics (orders, payments, shipments, reviews, registrations) are wired alongside the
+technical metrics; the business counters are driven from published domain events in the
+cross-cutting `config` module, so no business module depends on Micrometer. Grafana dashboards and
+the Prometheus datasource are auto-provisioned, and Prometheus loads alert rules. See
+`docs/OBSERVABILITY.md` (reference) and `docs/OBSERVABILITY_RUNBOOK.md` (operations).
+
 ---
 
 # 20. Logging Architecture

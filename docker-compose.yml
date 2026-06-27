@@ -60,6 +60,9 @@ services:
       # JWT signing secret. Required — no fallback, so the stack fails fast if it is unset
       # (copy .env.example to .env and set a real value) rather than booting with a known key.
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set — run "cp .env.example .env" and set a value}
+      # Observability: export traces to the zipkin service and sample everything in dev.
+      ZIPKIN_ENDPOINT: ${ZIPKIN_ENDPOINT:-http://zipkin:9411/api/v2/spans}
+      TRACING_SAMPLE_RATE: ${TRACING_SAMPLE_RATE:-1.0}
     ports:
       - "${APP_PORT:-8080}:8080"
     healthcheck:
@@ -71,11 +74,20 @@ services:
     networks:
       - ecommerce-network
 
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: ecommerce-zipkin
+    ports:
+      - "${ZIPKIN_PORT:-9411}:9411"
+    networks:
+      - ecommerce-network
+
   prometheus:
     image: prom/prometheus:latest
     container_name: ecommerce-prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
     depends_on:
@@ -93,6 +105,9 @@ services:
       - "${GRAFANA_PORT:-3000}:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+      # Auto-provision the Prometheus datasource and the bundled dashboards on startup.
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:

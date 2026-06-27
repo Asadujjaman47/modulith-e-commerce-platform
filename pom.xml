@@ -113,6 +113,17 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- Distributed tracing: Micrometer Observation -> Brave bridge, exported to Zipkin.
+             Brings traceId/spanId into the MDC so structured logs are correlated; spans are
+             exported to the Zipkin backend (docker compose) when reachable, otherwise dropped. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
 
         <!-- Spring Modulith -->
         <dependency>
@@ -201,6 +212,15 @@
                         </exclude>
                     </excludes>
                 </configuration>
+                <executions>
+                    <!-- Generates META-INF/build-info.properties so /actuator/info reports the
+                         build version, artifact and timestamp. -->
+                    <execution>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

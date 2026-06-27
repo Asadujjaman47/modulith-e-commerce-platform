@@ -1,9 +1,23 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  # Attached to every series this Prometheus exposes/federates; identifies the source environment.
+  external_labels:
+    monitor: ecommerce
+    environment: docker
+
+# Alerting rules evaluated against the scraped metrics.
+rule_files:
+  - /etc/prometheus/alerts.yml
 
 scrape_configs:
   - job_name: 'ecommerce-app'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['app:8080']
+        labels:
+          application: ecommerce
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
