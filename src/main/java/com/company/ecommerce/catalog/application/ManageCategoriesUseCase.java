@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ public class ManageCategoriesUseCase {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
+    // Cache name "categoryList" — see config.CacheConfig.CATEGORY_LIST. Evicted on any write.
+    @Cacheable(cacheNames = "categoryList")
     @Transactional(readOnly = true)
     public List<CategoryResponse> list() {
         return categoryMapper.toResponseList(categoryRepository.findAll());
@@ -34,6 +38,7 @@ public class ManageCategoriesUseCase {
         return categoryMapper.toResponse(require(categoryId));
     }
 
+    @CacheEvict(cacheNames = "categoryList", allEntries = true)
     @Transactional
     public CategoryResponse create(CreateCategoryRequest request) {
         String slug = Slugs.resolve(request.slug(), request.name());
@@ -50,6 +55,7 @@ public class ManageCategoriesUseCase {
         return categoryMapper.toResponse(category);
     }
 
+    @CacheEvict(cacheNames = "categoryList", allEntries = true)
     @Transactional
     public CategoryResponse update(UUID categoryId, UpdateCategoryRequest request) {
         Category category = require(categoryId);
@@ -68,6 +74,7 @@ public class ManageCategoriesUseCase {
         return categoryMapper.toResponse(category);
     }
 
+    @CacheEvict(cacheNames = "categoryList", allEntries = true)
     @Transactional
     public void delete(UUID categoryId) {
         Category category = require(categoryId);
