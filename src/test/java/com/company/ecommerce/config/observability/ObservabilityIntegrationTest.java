@@ -76,7 +76,10 @@ class ObservabilityIntegrationTest {
                         new BigDecimal("20.00")));
 
         // After the post-commit listener fires, the orders counter has advanced beyond zero.
+        // Poll on the test thread so the @WithMockUser security context (a thread-local) is visible
+        // to the admin-restricted /actuator/prometheus call.
         await().atMost(Duration.ofSeconds(15))
+                .pollInSameThread()
                 .untilAsserted(
                         () ->
                                 mockMvc.perform(get("/actuator/prometheus"))

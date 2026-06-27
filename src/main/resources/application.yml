@@ -7,6 +7,14 @@ spring:
     username: ${DB_USERNAME:ecommerce}
     password: ${DB_PASSWORD:ecommerce}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # Connection pool sizing/timeouts. Size for the deployment; the default (10) suits a single
+      # app instance against a modest Postgres. Fail fast rather than queue forever on exhaustion.
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT:600000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME:1800000}
 
   jpa:
     hibernate:
@@ -17,6 +25,13 @@ spring:
         format_sql: true
         jdbc:
           time_zone: UTC
+          # Batch writes (append-only ledgers, cascade saves) into multi-row statements.
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        # Batch LAZY association loads into IN (...) queries, turning N+1 collection/entity
+        # fetches (product images, order items, payment transactions) into a handful of queries.
+        default_batch_fetch_size: 100
 
   flyway:
     enabled: true
