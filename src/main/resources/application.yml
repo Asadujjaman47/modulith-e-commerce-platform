@@ -78,6 +78,18 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
     allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
 
+  rate-limit:
+    # Token-bucket limits over Redis (shared across instances; in-memory fallback if Redis is down).
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    auth:
+      # Strict per-IP limit on login/register/refresh to blunt credential stuffing.
+      capacity: ${RATE_LIMIT_AUTH_CAPACITY:10}
+      refill-period: ${RATE_LIMIT_AUTH_PERIOD:PT1M}
+    api:
+      # Looser per-principal (or per-IP) limit on the rest of the API.
+      capacity: ${RATE_LIMIT_API_CAPACITY:100}
+      refill-period: ${RATE_LIMIT_API_PERIOD:PT1M}
+
 springdoc:
   api-docs:
     path: /v3/api-docs
