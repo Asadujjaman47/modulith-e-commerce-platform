@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ public class UpdateProductUseCase {
     private final ProductMapper productMapper;
     private final ApplicationEventPublisher eventPublisher;
 
+    @CacheEvict(cacheNames = "products", key = "#productId")
     @Transactional
     public ProductResponse update(UUID productId, UpdateProductRequest request) {
         Product product =

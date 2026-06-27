@@ -6,7 +6,7 @@ Project: E-Commerce Platform
 
 Architecture: Spring Modulith
 
-Last Updated: 2026-06-25
+Last Updated: 2026-06-27
 
 ---
 
@@ -56,6 +56,7 @@ docs/adr/
 | ADR-008 | Docker Deployment Standard             | Accepted |
 | ADR-009 | MapStruct DTO Mapping                  | Accepted |
 | ADR-010 | Testcontainers for Integration Testing | Accepted |
+| ADR-018 | API Rate Limiting                      | Accepted |
 
 ---
 
@@ -72,7 +73,6 @@ Potential future decisions that may require ADRs:
 | ADR-015 | Object Storage (S3/MinIO) |
 | ADR-016 | Kafka Event Streaming     |
 | ADR-017 | Multi-Tenant Architecture |
-| ADR-018 | API Rate Limiting         |
 | ADR-019 | Feature Flags             |
 | ADR-020 | Distributed Tracing       |
 

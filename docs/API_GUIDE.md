@@ -113,6 +113,15 @@ Content-Type: application/json
 ]
 }
 
+Unexpected server errors (HTTP 500) additionally carry a `traceId` correlating the response with the
+logs (omitted from ordinary 4xx responses):
+
+{
+"success": false,
+"message": "Internal server error",
+"traceId": "a1b2c3d4e5f6"
+}
+
 ---
 
 # 6. HTTP Status Codes
@@ -153,9 +162,27 @@ Business rule violation
 
 Domain validation failure
 
+429 Too Many Requests
+
+Rate limit exceeded (includes a `Retry-After` header)
+
 500 Internal Server Error
 
-Unexpected error
+Unexpected error (body includes a `traceId`)
+
+---
+
+# 6a. Rate Limiting
+
+The API is rate limited (Bucket4j over Redis). Auth endpoints (`/api/v1/auth/**`) are limited per
+client IP; the rest of `/api/**` is limited per authenticated principal (or per IP when anonymous).
+
+* On success, responses include `X-RateLimit-Remaining`.
+* When the limit is exceeded, the API returns **429** with the standard error envelope and a
+  `Retry-After` header (seconds until a token frees up).
+
+Defaults: 10 auth requests/min, 100 API requests/min. See
+[RATE_LIMITING.md](RATE_LIMITING.md) for configuration.
 
 ---
 
@@ -1032,6 +1059,16 @@ Never expose:
 * API Keys
 
 Sensitive fields must be omitted from responses.
+
+Transport & headers:
+
+* Security headers are set on every response: `X-Content-Type-Options=nosniff`,
+  `X-Frame-Options=DENY`, `Referrer-Policy=strict-origin-when-cross-origin`, and HSTS over HTTPS.
+* CORS is restricted to the configured origins (`app.cors.allowed-origins`).
+* Only `/actuator/health` and `/actuator/info` are public; other actuator endpoints
+  (`prometheus`, `metrics`, …) require `ROLE_ADMIN`.
+
+Full reference: [SECURITY.md](SECURITY.md).
 
 ---
 

@@ -28,6 +28,7 @@
         <lombok.version>1.18.36</lombok.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <bucket4j.version>8.14.0</bucket4j.version>
     </properties>
 
     <dependencyManagement>
@@ -77,11 +78,28 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        <!-- Connection pooling for the Lettuce Redis client (spring.data.redis.lettuce.pool.*). -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
 
         <!-- Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- Rate limiting (Bucket4j); distributed limits over Redis via Lettuce, in-memory fallback -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-core</artifactId>
+            <version>${bucket4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-lettuce</artifactId>
+            <version>${bucket4j.version}</version>
         </dependency>
 
         <!-- JWT (access & refresh token issuance/validation) -->
@@ -201,6 +219,18 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Disable rate limiting by default so the shared loopback IP across the
+                         integration suite never trips the limiter. Tests that exercise the limiter
+                         re-enable it via @TestPropertySource (higher precedence). -->
+                    <systemPropertyVariables>
+                        <app.rate-limit.enabled>false</app.rate-limit.enabled>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

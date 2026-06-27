@@ -21,6 +21,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -54,6 +55,7 @@ class ObservabilityIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN") // /actuator/prometheus is admin-restricted (scraped with a token)
     void prometheusEndpointExposesBusinessAndHttpMetrics() throws Exception {
         // The custom counters are pre-registered at startup, so they are present immediately, tagged
         // with the common application label.
@@ -74,7 +76,10 @@ class ObservabilityIntegrationTest {
                         new BigDecimal("20.00")));
 
         // After the post-commit listener fires, the orders counter has advanced beyond zero.
+        // Poll on the test thread so the @WithMockUser security context (a thread-local) is visible
+        // to the admin-restricted /actuator/prometheus call.
         await().atMost(Duration.ofSeconds(15))
+                .pollInSameThread()
                 .untilAsserted(
                         () ->
                                 mockMvc.perform(get("/actuator/prometheus"))

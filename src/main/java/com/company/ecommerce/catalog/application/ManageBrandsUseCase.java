@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ public class ManageBrandsUseCase {
     private final BrandRepository brandRepository;
     private final BrandMapper brandMapper;
 
+    // Cache name "brandList" — see config.CacheConfig.BRAND_LIST. Evicted on any write.
+    @Cacheable(cacheNames = "brandList")
     @Transactional(readOnly = true)
     public List<BrandResponse> list() {
         return brandMapper.toResponseList(brandRepository.findAll());
@@ -34,6 +38,7 @@ public class ManageBrandsUseCase {
         return brandMapper.toResponse(require(brandId));
     }
 
+    @CacheEvict(cacheNames = "brandList", allEntries = true)
     @Transactional
     public BrandResponse create(CreateBrandRequest request) {
         String slug = Slugs.resolve(request.slug(), request.name());
@@ -48,6 +53,7 @@ public class ManageBrandsUseCase {
         return brandMapper.toResponse(brand);
     }
 
+    @CacheEvict(cacheNames = "brandList", allEntries = true)
     @Transactional
     public BrandResponse update(UUID brandId, UpdateBrandRequest request) {
         Brand brand = require(brandId);
@@ -61,6 +67,7 @@ public class ManageBrandsUseCase {
         return brandMapper.toResponse(brand);
     }
 
+    @CacheEvict(cacheNames = "brandList", allEntries = true)
     @Transactional
     public void delete(UUID brandId) {
         Brand brand = require(brandId);

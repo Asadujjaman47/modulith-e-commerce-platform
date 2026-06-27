@@ -658,11 +658,24 @@ Implementation (Phase 1)
 * Access tokens: HMAC-SHA256 JWT, 15-minute TTL, carrying `sub` (user id), `email`, `role`.
 * Refresh tokens: opaque random strings, 7-day TTL, **SHA-256 hashed and stored in PostgreSQL**
   (`refresh_tokens`). Refresh rotates the token (old one revoked); logout revokes it.
-* Public endpoints: `/api/v1/auth/{register,login,refresh}`, `/actuator/**`, Swagger. Everything
-  else requires authentication. `@EnableMethodSecurity` enables role checks.
+* Public endpoints: `/api/v1/auth/{register,login,refresh}`, `/actuator/health` + `/actuator/info`,
+  Swagger. Everything else requires authentication. `@EnableMethodSecurity` enables role checks.
 * The JWT signing secret (`app.jwt.secret`) has a dev-only fallback for local runs; the Docker/deploy
   path requires `JWT_SECRET` to be set (fails fast otherwise).
 * 401/403 responses use the standard `ErrorResponse` envelope.
+
+Production hardening (Phase 9):
+
+* **Security headers** on every response: `X-Content-Type-Options=nosniff`, `X-Frame-Options=DENY`,
+  `Referrer-Policy=strict-origin-when-cross-origin`, HSTS (over HTTPS).
+* **CORS** bound from `app.cors.*` (`CorsProperties`) and applied to `/api/**`; exact origins only,
+  no default origin in the `prod` profile.
+* **Actuator lockdown**: only `health`/`info` are public; `prometheus`, `metrics`, `modulith`, etc.
+  require `ROLE_ADMIN`.
+* **`prod` profile**: removes the JWT-secret fallback (fail-fast), disables Swagger, hides health
+  detail, silences SQL logging.
+* **Rate limiting** (Bucket4j over Redis) on `/api/**` — see [RATE_LIMITING.md](RATE_LIMITING.md).
+* Full reference: [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -694,31 +707,25 @@ Existing migrations are immutable; schema changes always add a new versioned mig
 
 # 17. Redis Architecture
 
-Redis Usage
+Redis backs two subsystems (PostgreSQL remains the source of truth):
 
-Cart Cache
+1. **Spring Cache** (`config.CacheConfig`, `@EnableCaching` + `RedisCacheManager`)
+2. **Rate-limit buckets** (Bucket4j `ProxyManager`, see [RATE_LIMITING.md](RATE_LIMITING.md))
 
-Product Cache
+Cache catalog (read-through, JSON values, key prefix `ecommerce:cache:`):
 
-Coupon Cache
+| Cache | Contents | TTL | Eviction |
+| ----- | -------- | --- | -------- |
+| `products` | product-by-id | 15 min | on product update/delete |
+| `categoryList` | full category list | 30 min | on any category write |
+| `brandList` | full brand list | 30 min | on any brand write |
 
-Session Cache
+Coupon-by-code is intentionally **not** cached: that read lazily expires/deactivates coupons and
+publishes events, so it is not a pure read. Cart stays in PostgreSQL (write-heavy, source of truth).
 
----
-
-TTL
-
-Cart
-
-24 hours
-
-Product
-
-1 hour
-
-Coupon
-
-30 minutes
+Resilience: a `LoggingCacheErrorHandler` downgrades any Redis cache failure to a database read, and the
+Lettuce client is pooled (`commons-pool2`) with short command/connect timeouts so a slow/unreachable
+Redis fails fast rather than hanging requests.
 
 ---
 

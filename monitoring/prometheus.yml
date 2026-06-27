@@ -13,6 +13,12 @@ rule_files:
 scrape_configs:
   - job_name: 'ecommerce-app'
     metrics_path: '/actuator/prometheus'
+    # /actuator/prometheus is restricted to ROLE_ADMIN (production hardening). Supply an admin
+    # bearer token so Prometheus can scrape it: mount the token into the prometheus container and
+    # uncomment the block below (see docs/SECURITY.md -> "Scraping protected metrics").
+    # authorization:
+    #   type: Bearer
+    #   credentials_file: /etc/prometheus/scrape-token
     static_configs:
       - targets: ['app:8080']
         labels:
