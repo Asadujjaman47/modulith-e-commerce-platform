@@ -331,7 +331,8 @@ Cross-cutting hardening only (no new business module, no business-schema changes
   - `build.yml` — reusable (`workflow_call`) build + test gate: `./mvnw -B -ntp clean verify` on
     Temurin 21 (unit + Testcontainers integration + Modulith verification + `build-info`), Maven
     caching, report/jar artifacts. Reused by both CI and Release so the gate is defined once
-  - `ci.yml` — on PRs to `main` + pushes to working branches: `build-test`, **CodeQL** (Java SAST),
+  - `ci.yml` — on PRs to `main` (PR-only; `main` pushes are gated by `release.yml`'s reuse of the
+    same `build.yml`): `build-test`, **CodeQL** (Java SAST),
     and a Buildx **Docker build validation** (`push: false`) + **Trivy** image scan (SARIF → Security
     tab; non-blocking on PRs). Concurrency cancels superseded runs
   - `release.yml` — on merge to `main` + `v*` tags: `build-test` gate, then build & **push to GHCR**

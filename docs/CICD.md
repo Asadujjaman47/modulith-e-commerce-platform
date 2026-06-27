@@ -39,9 +39,11 @@ manual dispatch ───▶ Deploy (gated SSH compose pull/up + health smoke te
   profile.
 - Uploads Surefire/Failsafe reports and the built jar as artifacts.
 
-### `ci.yml` — pull request / branch validation
+### `ci.yml` — pull request validation
 
-- Triggers: `pull_request` → `main`; `push` to `feature/**`, `bugfix/**`, `chore/**`, `docs/**`.
+- Trigger: `pull_request` → `main`. (PR-only by design: pushes to `main` are gated by
+  `release.yml`, which reuses the same `build.yml`, so CI does not also run on `push` — that would
+  double every check on a PR'd branch.)
 - Jobs:
   - `build-test` — reuses `build.yml`.
   - `codeql` — CodeQL Java SAST (manual build mode: `mvnw -DskipTests package`).

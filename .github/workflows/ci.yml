@@ -1,21 +1,16 @@
-# Continuous Integration — runs on every pull request to main and on pushes to working branches.
+# Continuous Integration — runs on every pull request targeting main.
 #
 # Stages (per docs/DEPLOYMENT.md §22): Build -> Unit + Integration Tests -> Static Analysis
 # (CodeQL) -> Docker Build validation -> image vulnerability scan (Trivy). Nothing is published
-# here; release.yml handles Docker Push and deployment.
+# here; release.yml handles Docker Push and deployment (and re-runs the same build-test gate on
+# pushes to main, so this workflow is PR-only to avoid duplicate runs).
 name: CI
 
 on:
   pull_request:
     branches: [main]
-  push:
-    branches:
-      - "feature/**"
-      - "bugfix/**"
-      - "chore/**"
-      - "docs/**"
 
-# Cancel superseded runs on the same ref to save runner minutes.
+# Cancel superseded runs on the same PR to save runner minutes.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
