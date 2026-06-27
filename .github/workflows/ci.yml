@@ -87,17 +87,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Run Trivy from its official image (deterministic; avoids the trivy-action binary download,
+      # which is rate-limited on hosted runners). --exit-code 0 keeps a freshly-disclosed upstream
+      # CVE from blocking the PR; findings still surface in the Security tab.
       - name: Scan image (Trivy)
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          image-ref: ecommerce:ci
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH
-          vuln-type: os,library
-          # Don't fail the PR on a freshly-disclosed upstream CVE; findings surface in the
-          # Security tab. release.yml re-scans the published image.
-          exit-code: "0"
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/work" -w /work \
+            aquasec/trivy:0.65.0 image \
+              --format sarif --output trivy-results.sarif \
+              --severity CRITICAL,HIGH --pkg-types os,library \
+              --exit-code 0 --no-progress \
+              ecommerce:ci
 
       - name: Upload Trivy results
         if: always()
