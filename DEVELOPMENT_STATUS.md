@@ -325,9 +325,31 @@ Cross-cutting hardening only (no new business module, no business-schema changes
 - Docs: `ARCHITECTURE.md` (§15 Security, §17 Redis), `DECISIONS.md` (ADR-018), `ADR-006` updated, new
   `SECURITY.md` / `RATE_LIMITING.md`
 
+### CI/CD & Deployment
+
+- GitHub Actions pipeline under `.github/workflows/` (no application/schema changes):
+  - `build.yml` — reusable (`workflow_call`) build + test gate: `./mvnw -B -ntp clean verify` on
+    Temurin 21 (unit + Testcontainers integration + Modulith verification + `build-info`), Maven
+    caching, report/jar artifacts. Reused by both CI and Release so the gate is defined once
+  - `ci.yml` — on PRs to `main` + pushes to working branches: `build-test`, **CodeQL** (Java SAST),
+    and a Buildx **Docker build validation** (`push: false`) + **Trivy** image scan (SARIF → Security
+    tab; non-blocking on PRs). Concurrency cancels superseded runs
+  - `release.yml` — on merge to `main` + `v*` tags: `build-test` gate, then build & **push to GHCR**
+    (`ghcr.io/asadujjaman47/ecommerce`, tags `latest`+`sha-<short>` on main, semver on tags) via the
+    built-in `GITHUB_TOKEN`, plus a Trivy scan of the pushed digest
+  - `deploy.yml` — manual `workflow_dispatch` (env + image-tag inputs), gated by a GitHub
+    **Environment** (required reviewers); SSH → `docker compose pull/up app` → `/actuator/health`
+    smoke test
+- `docker-compose.yml` — `app` service gains `image: ${APP_IMAGE:-ecommerce:local}` so a deploy host
+  pulls the published image while local `up` still builds
+- Docs: new `docs/CICD.md`; `docs/DEPLOYMENT.md` §22 rewritten to the concrete workflows + required
+  secrets/branch-protection; README CI/Release badges
+- Manual (not scriptable): branch protection required checks, Environments + reviewers, deploy
+  secrets, deploy-host provisioning
+
 ## In Progress
 
-Phase 9 — Production Readiness (PR pending)
+CI/CD & Deployment (PR pending)
 
 ## Next
 
@@ -336,4 +358,4 @@ Phase 9 — Production Readiness (PR pending)
 
 ## Current Branch
 
-feature/production-readiness
+feature/cicd-deployment
