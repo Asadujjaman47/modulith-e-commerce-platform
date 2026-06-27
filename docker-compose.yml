@@ -41,6 +41,9 @@ services:
       - ecommerce-network
 
   app:
+    # Locally `docker compose up` builds from the Dockerfile (tagged ecommerce:local). On a deploy
+    # host, set APP_IMAGE to a published GHCR tag so `docker compose pull` fetches it instead.
+    image: ${APP_IMAGE:-ecommerce:local}
     build:
       context: .
       dockerfile: Dockerfile

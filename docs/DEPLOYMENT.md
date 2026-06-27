@@ -641,27 +641,50 @@ Container JVM settings should respect container memory limits.
 
 # 22. CI/CD Pipeline
 
-GitHub Actions
+GitHub Actions. Implemented as three workflows under `.github/workflows/` (plus one reusable
+build), see `docs/CICD.md` for the full reference.
 
-Pipeline Stages
+Pipeline Stages → Implementation
 
-1. Build
-
-2. Unit Tests
-
-3. Integration Tests
+1. Build / 2. Unit Tests / 3. Integration Tests
+   `build.yml` (reusable, `workflow_call`) runs `./mvnw -B -ntp clean verify` on Temurin 21 —
+   unit + Testcontainers integration tests + Spring Modulith verification. Invoked by both `ci.yml`
+   and `release.yml` so the gate is defined once.
 
 4. Static Analysis
+   `ci.yml` runs **CodeQL** (Java SAST) and a **Trivy** scan of the freshly built image; findings
+   are uploaded to the repository Security tab.
 
 5. Docker Build
+   `ci.yml` builds the image with Buildx (`push: false`) on every PR to validate the Dockerfile.
 
 6. Docker Push
+   `release.yml` builds and pushes to **GHCR** (`ghcr.io/asadujjaman47/ecommerce`) on every merge
+   to `main` (tags `latest` + `sha-<short>`) and on `v*` tags (the semver + `major.minor`). Auth
+   uses the built-in `GITHUB_TOKEN` — no extra secret required.
 
-7. Deploy
+7. Deploy / 8. Smoke Tests
+   `deploy.yml` (manual `workflow_dispatch`, gated by a GitHub **Environment** with required
+   reviewers) SSHes to the target host, runs `docker compose pull app && up -d app`, then polls
+   `/actuator/health` for `UP`.
 
-8. Smoke Tests
+Any failed stage blocks the pipeline; `main` should require the `build-test` and `CodeQL` checks
+via branch protection.
 
-Deployment fails if any stage fails.
+Required GitHub secrets
+
+| Scope                | Secret             | Purpose                                            |
+| -------------------- | ------------------ | -------------------------------------------------- |
+| Docker Push          | `GITHUB_TOKEN`     | Auto-provided; pushes to GHCR (`packages: write`). |
+| Deploy (environment) | `DEPLOY_SSH_HOST`  | Target host (IP/DNS).                              |
+| Deploy (environment) | `DEPLOY_SSH_USER`  | SSH user.                                          |
+| Deploy (environment) | `DEPLOY_SSH_KEY`   | SSH private key (PEM).                             |
+| Deploy (environment) | `DEPLOY_SSH_PORT`  | Optional; defaults to 22.                          |
+| Deploy (environment) | `GHCR_TOKEN`       | PAT (`read:packages`) for `docker login` on host. |
+
+Manual one-time setup (cannot be scripted from the repo): enable branch protection on `main` with
+required checks; create the `staging`/`production` Environments and add reviewers; add the deploy
+secrets; ensure the host holds `docker-compose.yml` + a populated `.env`.
 
 ---
 

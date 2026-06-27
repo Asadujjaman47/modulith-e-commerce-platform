@@ -1,0 +1,53 @@
+# Reusable build + test gate.
+#
+# Runs the full Maven verification (unit + integration via Testcontainers + Spring Modulith
+# verification + build-info). Invoked by both ci.yml (on PRs) and release.yml (before publishing)
+# so the same gate is defined exactly once.
+name: Build & Test
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build & verify (mvn clean verify)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # Docker is preinstalled on ubuntu-latest; Testcontainers starts Postgres/Redis itself,
+      # so no external DB/Redis services are required here.
+      - name: Build, test & verify
+        run: ./mvnw -B -ntp clean verify
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/target/surefire-reports/**
+            **/target/failsafe-reports/**
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload application jar
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-jar
+          path: target/*.jar
+          if-no-files-found: warn
+          retention-days: 7

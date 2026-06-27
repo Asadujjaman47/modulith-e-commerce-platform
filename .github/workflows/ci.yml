@@ -1,0 +1,104 @@
+# Continuous Integration — runs on every pull request targeting main.
+#
+# Stages (per docs/DEPLOYMENT.md §22): Build -> Unit + Integration Tests -> Static Analysis
+# (CodeQL) -> Docker Build validation -> image vulnerability scan (Trivy). Nothing is published
+# here; release.yml handles Docker Push and deployment (and re-runs the same build-test gate on
+# pushes to main, so this workflow is PR-only to avoid duplicate runs).
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same PR to save runner minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Build + unit + integration + Modulith verification (shared definition).
+  build-test:
+    uses: ./.github/workflows/build.yml
+
+  # Static analysis — CodeQL SAST for Java.
+  codeql:
+    name: CodeQL (Java)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          build-mode: manual
+
+      # Manual build mode: compile the sources for CodeQL without running the test suite.
+      - name: Compile
+        run: ./mvnw -B -ntp -DskipTests clean package
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java-kotlin"
+
+  # Validate the Docker image builds, then scan it for OS/library CVEs. No push on PRs.
+  docker-build:
+    name: Docker build & scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ecommerce:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Run Trivy from its official image (deterministic; avoids the trivy-action binary download,
+      # which is rate-limited on hosted runners). --exit-code 0 keeps a freshly-disclosed upstream
+      # CVE from blocking the PR; findings still surface in the Security tab.
+      - name: Scan image (Trivy)
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/work" -w /work \
+            aquasec/trivy:0.65.0 image \
+              --format sarif --output trivy-results.sarif \
+              --severity CRITICAL,HIGH --pkg-types os,library \
+              --exit-code 0 --no-progress \
+              ecommerce:ci
+
+      - name: Upload Trivy results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-image

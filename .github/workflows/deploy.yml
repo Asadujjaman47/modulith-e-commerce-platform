@@ -1,0 +1,79 @@
+# Deploy — gated SSH + docker compose deployment of a published GHCR image.
+#
+# Manually triggered (workflow_dispatch). The job binds to a GitHub Environment so you can require
+# manual approval (Settings -> Environments -> add required reviewers). It SSHes to the target host
+# — which already holds docker-compose.yml and a populated .env — pulls the requested image, brings
+# the app up and smoke-tests the Actuator health endpoint.
+#
+# Required repository/environment secrets:
+#   DEPLOY_SSH_HOST     target host (IP or DNS)
+#   DEPLOY_SSH_USER     SSH user
+#   DEPLOY_SSH_KEY      private key (PEM) for that user
+#   DEPLOY_SSH_PORT     optional SSH port (defaults to 22)
+#   GHCR_TOKEN          PAT (read:packages) used on the host to docker login ghcr.io
+# Required variable (or hard-code below): APP_PORT (defaults to 8080).
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        default: staging
+      image_tag:
+        description: Image tag to deploy (e.g. latest, sha-abc1234, 1.0.0)
+        type: string
+        default: latest
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          envs: IMAGE_TAG,GHCR_TOKEN,GHCR_USER,REPO_OWNER,APP_PORT
+          script: |
+            set -euo pipefail
+            cd "${DEPLOY_DIR:-/opt/ecommerce}"
+
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+
+            # GHCR image names must be lowercase.
+            REPO_OWNER_LC=$(echo "${REPO_OWNER}" | tr '[:upper:]' '[:lower:]')
+            export APP_IMAGE="ghcr.io/${REPO_OWNER_LC}/ecommerce:${IMAGE_TAG}"
+            echo "Deploying ${APP_IMAGE}"
+            docker compose pull app
+            docker compose up -d app
+
+            # Smoke test: wait for the Actuator health endpoint to report UP.
+            echo "Smoke testing health endpoint..."
+            for i in $(seq 1 30); do
+              if curl -fsS "http://localhost:${APP_PORT:-8080}/actuator/health" | grep -q '"status":"UP"'; then
+                echo "Health UP after ${i} attempt(s)."
+                exit 0
+              fi
+              echo "Not ready yet (attempt ${i}/30)..."
+              sleep 5
+            done
+            echo "Health check failed after 150s." >&2
+            docker compose logs --tail=100 app >&2 || true
+            exit 1
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          APP_PORT: ${{ vars.APP_PORT || '8080' }}

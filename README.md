@@ -1,5 +1,8 @@
 # E-Commerce Platform
 
+[![CI](https://github.com/Asadujjaman47/modulith-e-commerce-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Asadujjaman47/modulith-e-commerce-platform/actions/workflows/ci.yml)
+[![Release](https://github.com/Asadujjaman47/modulith-e-commerce-platform/actions/workflows/release.yml/badge.svg)](https://github.com/Asadujjaman47/modulith-e-commerce-platform/actions/workflows/release.yml)
+
 A production-grade e-commerce platform built as a **Modular Monolith** with **Spring Modulith**.
 
 - **Java** 21 · **Spring Boot** 3.5.x · **Spring Modulith** 1.4.x · **Maven**
