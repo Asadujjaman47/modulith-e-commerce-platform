@@ -205,11 +205,14 @@ None
 
 # CATALOG MODULE
 
-Status: Implemented (Phase 2)
+Status: Implemented (Phase 2; read caching added Phase 9)
 
 Package
 
 com.company.ecommerce.catalog
+
+Caching (Phase 9): product-by-id, the category list and the brand list are served through the Redis
+cache (`@Cacheable`), with eviction on the corresponding writes. See ARCHITECTURE.md §17.
 
 ---
 
