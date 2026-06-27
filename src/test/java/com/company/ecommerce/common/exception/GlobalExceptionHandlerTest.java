@@ -5,12 +5,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.company.ecommerce.common.api.ErrorResponse;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 class GlobalExceptionHandlerTest {
@@ -84,5 +87,46 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().message()).isEqualTo("Invalid value for parameter 'orderId'");
+    }
+
+    @Test
+    void badCredentialsMapsTo401WithMessage() {
+        ResponseEntity<ErrorResponse> response =
+                handler.handleBadCredentials(new BadCredentialsException("Invalid email or password"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().message()).isEqualTo("Invalid email or password");
+    }
+
+    @Test
+    void missingParameterMapsTo400() {
+        ResponseEntity<ErrorResponse> response =
+                handler.handleMissingParameter(
+                        new MissingServletRequestParameterException("from", "LocalDate"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().message()).isEqualTo("Missing required parameter 'from'");
+    }
+
+    @Test
+    void dataIntegrityViolationMapsTo409() {
+        ResponseEntity<ErrorResponse> response =
+                handler.handleDataIntegrity(new DataIntegrityViolationException("duplicate key"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().success()).isFalse();
+    }
+
+    @Test
+    void unexpectedErrorMapsTo500() {
+        ResponseEntity<ErrorResponse> response =
+                handler.handleUnexpected(new RuntimeException("boom"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().message()).isEqualTo("Internal server error");
     }
 }
