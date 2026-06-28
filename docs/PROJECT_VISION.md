@@ -124,7 +124,8 @@ Docker
 
 Docker Compose
 
-GitHub Actions
+GitHub Actions (implemented — build/test/release/deploy workflows publishing to GHCR; see
+`docs/CICD.md`)
 
 ---
 

@@ -652,7 +652,8 @@ Pipeline Stages → Implementation
    and `release.yml` so the gate is defined once.
 
 4. Static Analysis
-   `ci.yml` runs **CodeQL** (Java SAST) and a **Trivy** scan of the freshly built image; findings
+   `ci.yml` runs **CodeQL** (Java SAST) and a **Trivy** scan of the freshly built image — Trivy runs
+   from the pinned `aquasec/trivy:0.65.0` container (not the rate-limited `trivy-action`); findings
    are uploaded to the repository Security tab.
 
 5. Docker Build
@@ -669,7 +670,8 @@ Pipeline Stages → Implementation
    `/actuator/health` for `UP`.
 
 Any failed stage blocks the pipeline; `main` should require the `build-test` and `CodeQL` checks
-via branch protection.
+via branch protection. Action versions are pinned to Node24-native majors (no deprecation warnings);
+see `docs/CICD.md` §6 for the version table.
 
 Required GitHub secrets
 

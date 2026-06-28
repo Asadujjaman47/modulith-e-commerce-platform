@@ -476,6 +476,10 @@ Docker Build Validation
 
 Any failure blocks merge.
 
+Implemented as GitHub Actions in `.github/workflows/` (`build.yml` reusable gate, `ci.yml` on PRs:
+build-test + CodeQL + Docker build validation + Trivy scan). See `docs/CICD.md` for the full
+reference.
+
 ---
 
 # Hotfix Process
