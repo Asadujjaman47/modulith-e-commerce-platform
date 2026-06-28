@@ -787,6 +787,9 @@ Backup strategy documented
 
 # CI/CD & Deployment
 
+Status: ✅ Delivered (PRs #13, #14). GitHub Actions pipeline in `.github/workflows/`
+(`build`/`ci`/`release`/`deploy`); images published to GHCR. See `docs/CICD.md`.
+
 Goal
 
 Automate build and deployment.

@@ -1,6 +1,6 @@
 # Current Milestone
 
-Phase 9 — Production Readiness (in review)
+CI/CD & Deployment — merged to `main` (all phases 0–9 + CI/CD complete)
 
 ## Completed
 
@@ -343,14 +343,24 @@ Cross-cutting hardening only (no new business module, no business-schema changes
     smoke test
 - `docker-compose.yml` — `app` service gains `image: ${APP_IMAGE:-ecommerce:local}` so a deploy host
   pulls the published image while local `up` still builds
+- **Trivy** runs from the pinned official container (`aquasec/trivy:0.65.0`) rather than
+  `aquasecurity/trivy-action`, whose binary installer is rate-limited on hosted runners; the release
+  scan pulls the pushed digest from GHCR with the job credentials
+- **Action versions** pinned to Node24-native majors (no Node20/CodeQL-v3 deprecation warnings):
+  `actions/checkout@v7`, `actions/setup-java@v5`, `actions/upload-artifact@v7`,
+  `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/metadata-action@v6`,
+  `docker/build-push-action@v7`, `github/codeql-action/*@v4`, `appleboy/ssh-action@v1`
 - Docs: new `docs/CICD.md`; `docs/DEPLOYMENT.md` §22 rewritten to the concrete workflows + required
   secrets/branch-protection; README CI/Release badges
 - Manual (not scriptable): branch protection required checks, Environments + reviewers, deploy
   secrets, deploy-host provisioning
+- Delivered as two squash-merged PRs: **#13** (`ci: add GitHub Actions build/test/release/deploy
+  pipelines`) and **#14** (`chore(ci): bump GitHub Actions to Node24-native majors`); both pipelines
+  verified green on PR and post-merge Release (first GHCR image published)
 
 ## In Progress
 
-CI/CD & Deployment (PR pending)
+None — CI/CD & Deployment merged to `main`.
 
 ## Next
 
@@ -359,4 +369,4 @@ CI/CD & Deployment (PR pending)
 
 ## Current Branch
 
-feature/cicd-deployment
+main

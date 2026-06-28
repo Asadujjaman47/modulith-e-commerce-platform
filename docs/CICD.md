@@ -48,8 +48,10 @@ manual dispatch ───▶ Deploy (gated SSH compose pull/up + health smoke te
   - `build-test` — reuses `build.yml`.
   - `codeql` — CodeQL Java SAST (manual build mode: `mvnw -DskipTests package`).
   - `docker-build` — builds the image with Buildx (`push: false`) to validate the Dockerfile, then
-    Trivy-scans it (`CRITICAL,HIGH`). Trivy does **not** fail the PR (`exit-code: 0`); results land
-    in the Security tab.
+    scans it for `CRITICAL,HIGH` OS/library CVEs by running the official **`aquasec/trivy:0.65.0`**
+    container (deterministic — avoids the `trivy-action` binary installer, which is rate-limited on
+    hosted runners). Trivy does **not** fail the PR (`exit-code: 0`); the SARIF lands in the Security
+    tab.
 - `concurrency` cancels superseded runs on the same ref.
 
 ### `release.yml` — build & publish image
@@ -57,8 +59,10 @@ manual dispatch ───▶ Deploy (gated SSH compose pull/up + health smoke te
 - Triggers: `push` to `main`; `push` tags matching `v*`.
 - Jobs:
   - `build-test` — reuses `build.yml` (re-gates tag pushes that never saw a PR).
-  - `publish` — logs in to GHCR with `GITHUB_TOKEN`, derives tags via `docker/metadata-action`
-    (auto-lowercases the owner), builds & pushes, then Trivy-scans the pushed digest.
+  - `publish` — logs in to GHCR with `GITHUB_TOKEN`, computes the lowercase image name once (a
+    `Compute image name` step, since the owner is mixed-case and GHCR requires lowercase), derives
+    tags via `docker/metadata-action`, builds & pushes, then scans the pushed digest with the
+    `aquasec/trivy:0.65.0` container (pulling from GHCR with the job credentials).
 - Image tags: `latest` + `sha-<short>` on `main`; `<semver>` + `<major>.<minor>` on `v*`.
 
 ### `deploy.yml` — gated deployment
@@ -104,3 +108,26 @@ manual dispatch ───▶ Deploy (gated SSH compose pull/up + health smoke te
 2. Actions → **Deploy** → *Run workflow* → pick the environment and image tag.
 3. Approve the environment gate.
 4. The job pulls, restarts the app, and fails if `/actuator/health` is not `UP` within 150s.
+
+---
+
+## 6. Pinned versions
+
+Actions are pinned to Node24-native majors so the workflows raise no Node20 / CodeQL-v3 deprecation
+warnings. When bumping, confirm the target tag exists first.
+
+| Action | Pin |
+| --- | --- |
+| `actions/checkout` | `v7` |
+| `actions/setup-java` | `v5` |
+| `actions/upload-artifact` | `v7` |
+| `docker/setup-buildx-action` | `v4` |
+| `docker/login-action` | `v4` |
+| `docker/metadata-action` | `v6` |
+| `docker/build-push-action` | `v7` |
+| `github/codeql-action/*` | `v4` |
+| `appleboy/ssh-action` | `v1` |
+| Trivy (run as a container) | `aquasec/trivy:0.65.0` |
+
+Build toolchain: Temurin **21**, Spring Boot 3.5.x. Bumping the JDK means updating `actions/setup-java`
+(`java-version`), the `Dockerfile` base images, and `pom.xml` (`java.version`) together.
