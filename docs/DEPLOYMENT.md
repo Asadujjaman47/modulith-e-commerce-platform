@@ -289,15 +289,15 @@ can run from IntelliJ or the terminal against `docker compose up -d postgres red
 docker — application running inside a container. `application-docker.yml`. Datasource/Redis target
 the compose service hostnames (`postgres`, `redis`).
 
-Planned Profiles (Phase 9 — Production Readiness)
+prod — production hardening (added in Phase 9). `application-prod.yml`. Fails fast on a missing
+`JWT_SECRET`, disables Swagger, and suppresses SQL/health detail. Activate with
+`SPRING_PROFILES_ACTIVE=prod` (typically layered as `docker,prod`).
 
-dev
+Not yet created
 
-staging
-
-prod
-
-To be added as `application-dev.yml`, `application-staging.yml`, `application-prod.yml`.
+dev, staging — referenced by the environment matrix above but no `application-dev.yml` /
+`application-staging.yml` exist yet; both currently reuse the `docker`/`prod` configuration via env
+overrides. Add dedicated profiles if/when those environments are provisioned.
 
 Startup Example
 

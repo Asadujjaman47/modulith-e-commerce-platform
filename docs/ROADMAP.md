@@ -14,7 +14,7 @@ Database: PostgreSQL
 
 Deployment: Docker
 
-Status: Phase 0–8 complete (Foundation, Auth & User, Catalog & Inventory, Cart & Coupon, Order, Payment & Shipment, Notification & Review, Reporting & Audit, Observability) — Phase 9 (Production Readiness) next
+Status: Phases 0–10 complete — Foundation, Auth & User, Catalog & Inventory, Cart & Coupon, Order, Payment & Shipment, Notification & Review, Reporting & Audit, Observability, Production Readiness, and CI/CD & Deployment. All planned phases delivered.
 
 ---
 
@@ -483,6 +483,10 @@ Order history available
 
 # Payment & Shipment
 
+Status: Complete — payments through a pluggable gateway (intent on order, charge with idempotency,
+retry, history, admin refund) and shipments with tracking that auto-advance the order PAID →
+PROCESSING → DELIVERED.
+
 Goal
 
 Complete checkout process.
@@ -555,6 +559,10 @@ Delivery status updated
 
 # Notifications & Reviews
 
+Status: Complete — event-driven email notifications (pluggable sender, Mailpit in dev; failures
+logged, never propagated) and product reviews/ratings behind a delivered-order purchase gate, with
+admin moderation.
+
 Goal
 
 Improve customer engagement.
@@ -619,6 +627,9 @@ Ratings visible
 
 # Reporting & Audit
 
+Status: Complete — read-only sales/product report projections (idempotent per-order facts) and an
+append-only audit trail consuming every published business event, both behind admin APIs.
+
 Goal
 
 Provide operational visibility.
@@ -672,6 +683,9 @@ Audit trail available
 # PHASE 8
 
 # Observability
+
+Status: Complete — Micrometer → Prometheus → Grafana metrics (incl. business KPIs), Micrometer
+Tracing → Zipkin, and trace-correlated JSON logs; dashboards and alert rules provisioned.
 
 Goal
 
@@ -736,6 +750,10 @@ Health endpoint available
 # PHASE 9
 
 # Production Readiness
+
+Status: Complete — hardened exception handling, security headers / CORS / actuator lockdown + a
+`prod` profile, Redis-backed caching, Bucket4j rate limiting, and JDBC/connection-pool performance
+tuning.
 
 Goal
 
